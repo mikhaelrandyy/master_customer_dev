@@ -2,6 +2,7 @@ from ulid import ULID
 from sqlmodel import Field, Relationship
 
 from models.base_model import BaseULIDModel, SQLModel
+from models import CustomerDev
 
 
 class CustomerDevGroupBase(SQLModel):
@@ -12,4 +13,8 @@ class CustomerDevGroupFullBase(CustomerDevGroupBase, BaseULIDModel):
     pass
 
 class CustomerDevGroup(CustomerDevGroupFullBase, table=True):
-    pass
+    customer_dev: "CustomerDev" = Relationship(
+        sa_relationship_kwargs = {
+            "lazy": "select"
+        }
+    )

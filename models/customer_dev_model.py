@@ -1,6 +1,6 @@
 from ulid import ULID
 from sqlmodel import Field, Relationship
-from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, NationalityEnum, ReligionTypeEnum, GenderTypeEnum, MaritalStatusEnum, TypePersonEnum
+from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, NationalityEnum, ReligionTypeEnum, GenderTypeEnum, MaritalStatusEnum, TypeLocationEnum
 from datetime import date
 from pydantic import EmailStr
 
@@ -8,7 +8,7 @@ from models.base_model import BaseULIDModel, SQLModel
 from models import Attachment, RiwayatPerubahan
 
 class CustomerDevBase(SQLModel):
-    tipe: CustomerDevTypeEnum | None = Field(nullable=True)
+    type: CustomerDevTypeEnum | None = Field(nullable=True)
     code: str | None = Field(nullable=True, unique=True) #ada di vs non dev
     first_name: str = Field(nullable=False, max_length=40) #ada di vs non dev
     last_name: str | None = Field(nullable=True, max_length=40) #ada di vs non dev
@@ -43,14 +43,13 @@ class CustomerDevBase(SQLModel):
     npwp: str | None = Field(nullable=False) #vs non dev
     nitku: str | None = Field(nullable=False)
 
-    phone_number: str | None = Field(nullable=False) #vs non dev
-    phone_number_secondary: str | None = Field(nullable=True)
+    handphone_number: str | None = Field(nullable=False) #vs non dev
+    handphone_number_secondary: str | None = Field(nullable=True)
     telepon_number: str | None = Field(nullable=True) #vs non dev
     email: EmailStr | None = Field(nullable=True) #vs non dev
 
-    address_type: TypePersonEnum | None = Field(nullable=True)
-    other_address_type: str | None = Field(nullable=True)
-
+    mailing_address_type: TypeLocationEnum | None = Field(nullable=True)
+    mailing_other_type: str | None = Field(nullable=True)
     mailing_address: str | None = Field(nullable=True)
     mailing_sub_district: str | None = Field(nullable=True)
     mailing_district: str | None = Field(nullable=True)
