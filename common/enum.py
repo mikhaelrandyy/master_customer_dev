@@ -3,7 +3,7 @@ from enum import Enum
 class CustomerDevTypeEnum(str, Enum):
     PERSON = "PERSON"
     ORGANIZATION = "ORGANIZATION"
-    PERSON_GROUP = "PERSON GROUP"
+    PERSON_GROUP = "PERSON_GROUP"
 
 class JenisIdentitasTypeEnum(str, Enum):
     KTP = "KTP"
