@@ -45,7 +45,7 @@ class CustomerDevBase(SQLModel):
 
     handphone_number: str | None = Field(nullable=False) #vs non dev
     handphone_number_secondary: str | None = Field(nullable=True)
-    telepon_number: str | None = Field(nullable=True) #vs non dev
+    phone_number: str | None = Field(nullable=True) #vs non dev
     email: EmailStr | None = Field(nullable=True) #vs non dev
 
     mailing_address_type: TypeLocationEnum | None = Field(nullable=True)
