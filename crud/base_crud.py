@@ -148,7 +148,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         *,
         obj_in: CreateSchemaType | ModelType,
         created_by: str | None = None,
-        db_session: AsyncSession | None = None
+        db_session: AsyncSession | None = None,
+        with_commit: bool | None = True
     ) -> ModelType:
         db_session = db_session or db.session
         db_obj = self.model.model_validate(obj_in)  # type: ignore
@@ -174,6 +175,10 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 status_code=500,
                 detail=str(e),
             )
+        
+        if with_commit:
+            await db_session.refresh(db_obj)
+            
         return db_obj
 
     async def get_all_ordered(
