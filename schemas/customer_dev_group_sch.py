@@ -7,7 +7,7 @@ class CustomerDevGroupCreateSch(CustomerDevGroupBase):
 class CustomerDevGroupSch(CustomerDevGroupFullBase):
     pass 
 
-class CustomerDevGroupUpdateSch(CustomerDevGroupFullBase):
+class CustomerDevGroupUpdateSch(CustomerDevGroupBase):
     pass
 
 class CustomerDevGroupByIdSch(CustomerDevGroupFullBase):

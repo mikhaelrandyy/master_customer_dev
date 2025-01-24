@@ -1,12 +1,16 @@
-import ulid
+import random
 
-async def generate_number_16_digit():
-    ulid_str = str(ulid.new())[:16]  
-    return int(ulid_str)  
+# async def generate_number(size: int):
 
-async def generate_number_22_digit():
-    ulid_str = str(ulid.new())[:22]  
-    return int(ulid_str)  
+#     min_value = 10**(size - 1)  
+#     max_value = 10**size - 1    
+
+#     return random.randint(min_value, max_value)
+
+async def generate_number(size: int) -> str:
+
+    return ''.join(random.choices('0123456789', k=size))
+
 
 
 

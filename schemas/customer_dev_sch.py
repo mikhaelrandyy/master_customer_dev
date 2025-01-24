@@ -7,8 +7,8 @@ class CustomerDevCreateSch(CustomerDevBase):
 class CustomerDevSch(CustomerDevFullBase):
     pass 
 
-class CustomerDevUpdateSch(CustomerDevFullBase):
-    pass
+class CustomerDevUpdateSch(CustomerDevBase):
+    id: str
 
 class CustomerDevByIdSch(CustomerDevFullBase):
     pass

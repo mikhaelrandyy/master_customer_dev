@@ -1,10 +1,12 @@
 from crud.base_crud import CRUDBase
-from models import HistoryLog
 
-from schemas.history_log_sch import HistoryLogCreateSch
-from schemas.customer_dev_group_sch import HistoryLogCreateSch, HistoryLogUpdateSch
-from schemas.customer_dev_sch import CustomerDevSch
+from schemas.history_log_sch import HistoryLogCreateSch, HistoryLogUpdateSch
+from schemas.customer_dev_sch import CustomerDevSch, CustomerDevUpdateSch, CustomerDevCreateSch
+
+from models import HistoryLog, CustomerDev
+
 import crud
+import json
 
 
 
@@ -13,10 +15,11 @@ class CRUDHistoryLog(CRUDBase[HistoryLog, HistoryLogCreateSch, HistoryLogUpdateS
     
     async def create_history_log_for_customer(self, 
                     *, 
-                    obj_in: CustomerDevSch,
+                    obj_in: CustomerDev,
+                    created_by: str | None = None,
                     with_commit: bool | None = True,
                     db_session
-                  ) -> HistoryLog | None:
+                  ) -> HistoryLog:
 
 
             history_log_entry = HistoryLogCreateSch(
@@ -27,9 +30,41 @@ class CRUDHistoryLog(CRUDBase[HistoryLog, HistoryLogCreateSch, HistoryLogUpdateS
                                                 source_table="customer_dev"
                                             )
 
-            new_obj = await crud.history_log.create(obj_in=history_log_entry, db_session=db_session, with_commit=False)
+            db_obj = HistoryLog.model_validate(history_log_entry)
+            db_obj.created_by = created_by
 
-            return new_obj
+            db_session.add(db_obj)
+
+            return db_obj
+    
+    
+    async def update_history_log_for_customer(self, 
+                    *, 
+                    obj_current: CustomerDev,
+                    obj_in: CustomerDevUpdateSch,
+                    created_by: str | None = None,
+                    db_session
+                  ) -> HistoryLog | None:
+            
+
+            obj_current_json = json.dumps(obj_current)
+
+            obj_in_json = json.dumps(obj_in)
+
+            history_log_entry = HistoryLogUpdateSch(
+                                                reference_id=obj_in.id, 
+                                                before=obj_current_json,  
+                                                after=obj_in_json, 
+                                                source_process="UPDATE",
+                                                source_table="customer_dev"
+                                            )
+
+            db_obj = HistoryLog.model_validate(history_log_entry)
+            db_obj.created_by = created_by
+
+            db_session.add(db_obj)
+
+            return db_obj
         
         
     

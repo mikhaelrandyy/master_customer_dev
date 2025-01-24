@@ -1,4 +1,4 @@
-from models.customer_dev_model import HistoryLogBase, HistoryLogFullBase
+from models.history_log_model import HistoryLogBase, HistoryLogFullBase
 
 
 class HistoryLogCreateSch(HistoryLogBase):
@@ -7,7 +7,7 @@ class HistoryLogCreateSch(HistoryLogBase):
 class HistoryLogSch(HistoryLogFullBase):
     pass 
 
-class HistoryLogUpdateSch(HistoryLogFullBase):
+class HistoryLogUpdateSch(HistoryLogBase):
     pass
 
 class HistoryLogByIdSch(HistoryLogFullBase):
