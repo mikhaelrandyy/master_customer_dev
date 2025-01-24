@@ -10,6 +10,6 @@ class CustomerDevSch(CustomerDevFullBase):
 class CustomerDevUpdateSch(CustomerDevFullBase):
     pass
 
-class CustomerDevByIdIncludeBidangSch(CustomerDevFullBase):
+class CustomerDevByIdSch(CustomerDevFullBase):
     pass
 

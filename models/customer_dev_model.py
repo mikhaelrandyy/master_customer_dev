@@ -1,11 +1,11 @@
 from ulid import ULID
 from sqlmodel import Field, Relationship
-from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, NationalityEnum, ReligionTypeEnum, GenderTypeEnum, MaritalStatusEnum, TypeLocationEnum
+from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, NationalityEnum, ReligionTypeEnum, GenderTypeEnum, MaritalStatusEnum, AddressTypeEnum
 from datetime import date
 from pydantic import EmailStr
 
 from models.base_model import BaseULIDModel, SQLModel
-from models import Attachment, RiwayatPerubahan
+from models import Attachment, HistoryLog
 
 class CustomerDevBase(SQLModel):
     type: CustomerDevTypeEnum | None = Field(nullable=True)
@@ -48,7 +48,7 @@ class CustomerDevBase(SQLModel):
     phone_number: str | None = Field(nullable=True) #vs non dev
     email: EmailStr | None = Field(nullable=True) #vs non dev
 
-    mailing_address_type: TypeLocationEnum | None = Field(nullable=True)
+    mailing_address_type: AddressTypeEnum | None = Field(nullable=True)
     mailing_other_type: str | None = Field(nullable=True)
     mailing_address: str | None = Field(nullable=True)
     mailing_sub_district: str | None = Field(nullable=True)
@@ -71,7 +71,7 @@ class CustomerDev(CustomerDevFullBase, table=True):
         }
     )
 
-    riwayat_perubahans: list["RiwayatPerubahan"] = Relationship(
+    history_logs: list["HistoryLog"] = Relationship(
         sa_relationship_kwargs = {
             "lazy": "select"
         }

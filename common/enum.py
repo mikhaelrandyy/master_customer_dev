@@ -31,7 +31,7 @@ class MaritalStatusEnum(str, Enum):
     SINGLE = "SINGLE"
     DIVORCED = "DIVORCED"
 
-class TypeLocationEnum(str, Enum):
+class AddressTypeEnum(str, Enum):
     RUMAH = "RUMAH"
     PERUSAHAAN = "PERUSAHAAN"
     KANTOR = "KANTOR"
