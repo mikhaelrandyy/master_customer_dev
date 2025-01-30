@@ -14,7 +14,7 @@ async def create(sch: list[CustomerDevCreateSch]):
     
     """Create a new object"""
 
-    obj = await crud.customer_dev.create_customer_dev(sch=sch)
+    obj = await crud.customer_dev.create(sch=sch)
 
     return create_response(data=obj)
 
