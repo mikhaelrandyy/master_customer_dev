@@ -9,11 +9,11 @@ import crud
 
 router = APIRouter()
 
-@router.post("/create", response_model=PostResponseBaseSch[list[CustomerDevSch]], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PostResponseBaseSch[list[CustomerDevSch]], status_code=status.HTTP_201_CREATED)
 async def create(sch: list[CustomerDevCreateSch]):
     
     """Create a new object"""
 
-    obj = await crud.customer_dev.create_customer_dev(sch=sch)
+    obj = await crud.customer_dev.create(sch=sch)
 
     return create_response(data=obj)

@@ -1,12 +1,9 @@
-import ulid
+import random
 
-async def generate_number_16_digit():
-    ulid_str = str(ulid.new())[:16]  
-    return int(ulid_str)  
-
-async def generate_number_22_digit():
-    ulid_str = str(ulid.new())[:22]  
-    return int(ulid_str)  
+def generate_number(digit: int) -> int:
+    start = 10**(digit - 1)
+    end = (10**digit) - 1
+    return random.randint(start, end)
 
 
 
