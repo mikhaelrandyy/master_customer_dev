@@ -11,6 +11,7 @@ class AttachmentBase(SQLModel):
     file_name: str | None = Field(nullable=True)
     file_url: str | None = Field(nullable=True)
     source_process: str = Field(nullable=False) #UPDATE APLIKASI FROM
+    is_active: bool | None = Field(nullable=True)
 
 class AttachmentFullBase(AttachmentBase, BaseULIDModel):
     pass

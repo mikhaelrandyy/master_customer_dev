@@ -7,13 +7,15 @@ from crud.base_crud import CRUDBase
 from models import (
     CustomerDev, 
     CustomerDevGroup,
-    HistoryLog)
-from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch
+    HistoryLog,
+    Attachment)
+from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevForAttachmentSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
 from schemas.history_log_sch import HistoryLogCreateSch
+from schemas.attachment_sch import AttachmentSch
 from common.generator import generate_number
 from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum
-import crud
+from sqlalchemy.orm import selectinload
 
 
 
@@ -27,10 +29,12 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 if created_by:
                     customer_dev.created_by = customer_dev.updated_by = created_by
 
+                for obj in obj_in.attachments:
+                    customer_dev.attachments.append(Attachment(**obj.model_dump(), created_by=created_by, updated_by=created_by, is_active=True))
+
                 db.session.add(customer_dev)
                 await db.session.flush()
                 new_customers.append(customer_dev)
-
 
             # IF CUSTOMER DEV IS MORE THAN 1, THEN CREATE CUSTOMER DEV PERSON GROUP
             if len(sch) > 1:
@@ -55,7 +59,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
                     history_log = HistoryLog.model_validate(history_log_entry.model_dump())
                     db.session.add(history_log)
-            
+
             await db.session.commit()
 
         except Exception as e:

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status, Depends, UploadFile, HTTPException, Response
 
-from schemas.customer_dev_sch import (CustomerDevSch, CustomerDevCreateSch, CustomerDevByIdSch, CustomerDevUpdateSch)
+from schemas.customer_dev_sch import (CustomerDevSch, CustomerDevCreateSch, CustomerDevByIdSch, CustomerDevUpdateSch, CustomerDevForAttachmentSch)
 from schemas.response_sch import (PostResponseBaseSch, GetResponseBaseSch, GetResponsePaginatedSch, PutResponseBaseSch, create_response)
 
 from models import CustomerDev

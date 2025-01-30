@@ -1,11 +1,12 @@
 from models.customer_dev_model import CustomerDevBase, CustomerDevFullBase
+from schemas.attachment_sch import AttachmentForCustomerDevSch
 
 
 class CustomerDevCreateSch(CustomerDevBase):
-    pass
+    attachments: list[AttachmentForCustomerDevSch]
 
 class CustomerDevSch(CustomerDevFullBase):
-    pass 
+    attachments: list[AttachmentForCustomerDevSch]
 
 class CustomerDevUpdateSch(CustomerDevBase):
     id: str
