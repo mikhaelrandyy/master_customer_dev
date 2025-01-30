@@ -43,15 +43,18 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             # CREATE FIRST HISTORY LOG
             for new_customer in new_customers:
-                history_log_entry = HistoryLogCreateSch(
-                    reference_id=new_customer.id,
-                    before=None,
-                    after=new_customer.model_dump(),
-                    source_process=new_customer.lastest_source_from,
-                    source_table="customer_dev")
-                
-                history_log = HistoryLog.model_validate(history_log_entry.model_dump())
-                db.session.add(history_log)
+
+                if new_customer.business_id_type != CustomerDevTypeEnum.PERSON_GROUP:
+
+                    history_log_entry = HistoryLogCreateSch(
+                        reference_id=new_customer.id,
+                        before=None,
+                        after=new_customer.model_dump(),
+                        source_process=new_customer.lastest_source_from,
+                        source_table="customer_dev")
+
+                    history_log = HistoryLog.model_validate(history_log_entry.model_dump())
+                    db.session.add(history_log)
             
             await db.session.commit()
 
