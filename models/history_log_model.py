@@ -1,9 +1,7 @@
-from ulid import ULID
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from models.base_model import BaseULIDModel, SQLModel
-from models import CustomerDev
 
 
 class HistoryLogBase(SQLModel):

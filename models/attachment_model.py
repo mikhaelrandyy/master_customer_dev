@@ -1,8 +1,11 @@
 from ulid import ULID
 from sqlmodel import Field, Relationship
+from typing import TYPE_CHECKING
 
 from models.base_model import BaseULIDModel, SQLModel
-from models import CustomerDev
+
+if TYPE_CHECKING:
+    from models import CustomerDev
 
 
 class AttachmentBase(SQLModel):

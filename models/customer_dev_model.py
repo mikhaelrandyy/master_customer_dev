@@ -3,9 +3,12 @@ from sqlmodel import Field, Relationship
 from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, NationalityEnum, ReligionTypeEnum, GenderTypeEnum, MaritalStatusEnum, AddressTypeEnum
 from datetime import date
 from pydantic import EmailStr
+from typing import TYPE_CHECKING
 
 from models.base_model import BaseULIDModel, SQLModel
-from models import Attachment, HistoryLog
+
+if TYPE_CHECKING:
+    from models import Attachment, HistoryLog
 
 class CustomerDevBase(SQLModel):
     type: CustomerDevTypeEnum | None = Field(nullable=True)
@@ -31,7 +34,7 @@ class CustomerDevBase(SQLModel):
 
     nationality: NationalityEnum | None = Field(nullable=True)
     nationality_country: str | None = Field(nullable=True)
-    date_of_birth: date | None = Field(nulllable=False) #ada di vs non dev
+    date_of_birth: date | None = Field(nullable=False) #ada di vs non dev
     place_of_birth: str | None = Field(nullable=True) #ada di vs non dev
 
     religion: ReligionTypeEnum | None = Field(nullable=False) #ada di vs non dev
