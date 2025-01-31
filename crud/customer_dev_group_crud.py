@@ -14,20 +14,13 @@ from sqlalchemy.orm import selectinload
 
 class CRUDCustomerDevGroup(CRUDBase[CustomerDevGroup, CustomerDevGroupCreateSch, CustomerDevGroupUpdateSch]):
     
-    async def get_by_id(self, 
-                  *, 
-                  id: UUID | str | None = None,
-                  db_session: AsyncSession | None = None
-                  ) -> CustomerDevGroup | None:
-        
+    async def get_by_id(self, *, id: str | None = None, db_session: AsyncSession | None = None) -> CustomerDevGroup | None:
         db_session = db_session or db.session
         
         query = select(CustomerDevGroup)
         query = query.where(CustomerDevGroup.id == id)
-        
         response = await db_session.execute(query)
 
         return response.scalar_one_or_none()
     
-     
 customer_dev_group = CRUDCustomerDevGroup(CustomerDevGroup)

@@ -23,13 +23,13 @@ async def update(sch: CustomerDevUpdateSch):
     
     """Create a new object"""
 
-    obj = await crud.customer_dev.get(id=sch.id)
+    obj_current = await crud.customer_dev.get(id=sch.id)
 
-    if not obj:
+    if not obj_current:
         raise HTTPException(status_code=404, detail=f"Customer tidak ditemukan")
 
-    obj_updated = await crud.customer_dev.update_customer_dev(obj_current=obj, obj_updated=sch)
+    obj_updated = await crud.customer_dev.update_customer_dev(obj_current=obj_current, obj_new=sch)
 
-    obj_cust = await crud.customer_dev.get_by_id(id=obj_updated.id)
+    response_obj = await crud.customer_dev.get_by_id(id=obj_updated.id)
 
-    return create_response(data=obj_cust)
+    return create_response(data=response_obj)

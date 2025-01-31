@@ -9,6 +9,7 @@ class JenisIdentitasTypeEnum(str, Enum):
     KTP = "KTP"
     KIA = "KIA"
     PASPOR = "PASPOR"
+    NIB = "NIB"
 
 class NationalityEnum(str, Enum):
     WNI = "WNI"

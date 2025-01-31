@@ -1,8 +1,9 @@
 from fastapi import HTTPException
 from fastapi_async_sqlalchemy import db
+from fastapi.encoders import jsonable_encoder
 from sqlmodel import and_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, exc
 from crud.base_crud import CRUDBase
 from models import (
     CustomerDev, 
@@ -11,11 +12,12 @@ from models import (
     Attachment)
 from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevForAttachmentSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
-from schemas.history_log_sch import HistoryLogCreateSch
+from schemas.history_log_sch import HistoryLogCreateSch, HistoryLogCreateUpdateSch
 from schemas.attachment_sch import AttachmentSch
 from common.generator import generate_number
-from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum
-from sqlalchemy.orm import selectinload
+from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, NationalityEnum
+from datetime import datetime, timezone
+import crud
 
 
 
@@ -24,13 +26,16 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         new_customers: list[CustomerDev] = []
         try:
             for obj_in in sch:
+
+                self.check_validasi(obj_in=obj_in)
+
                 customer_dev = CustomerDev.model_validate(obj_in)
 
                 if created_by:
                     customer_dev.created_by = customer_dev.updated_by = created_by
 
-                for obj in obj_in.attachments:
-                    customer_dev.attachments.append(Attachment(**obj.model_dump(), created_by=created_by, updated_by=created_by, is_active=True))
+                for attachment in obj_in.attachments:
+                    customer_dev.attachments.append(Attachment(**attachment.model_dump(), created_by=created_by, updated_by=created_by, is_active=True))
 
                 db.session.add(customer_dev)
                 await db.session.flush()
@@ -96,5 +101,105 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 db_obj.created_by = db_obj.updated_by = created_by
 
             db.session.add(db_obj)
+
+    async def update_customer_dev(self, *, obj_current: CustomerDev, obj_new: CustomerDevUpdateSch, updated_by: str) -> CustomerDev:
+        try:
+            self.check_validasi(obj_in=obj_new)
+
+            obj_before_update = obj_current.model_dump()  
+
+            #UPDATE CUSTOMER
+            obj_data = jsonable_encoder(obj_current)
+
+            if isinstance(obj_new, dict):
+                update_data = obj_new
+            else:
+                update_data = obj_new.dict(exclude_unset=True) 
+
+            for field in obj_data:
+                if field in update_data:
+                    setattr(obj_current, field, update_data[field])
+                elif updated_by and updated_by != '' and field == "updated_by":
+                    setattr(obj_current, field, updated_by)
+
+            db.session.add(obj_current)
+
+            if obj_new.attachments:
+                for attachment in obj_new.attachments:
+                    existing_attachment = await crud.attachment.get_by_doc_type(customer_id=obj_new.id, doc_type=attachment.doc_type)
+
+                    if existing_attachment:
+                        existing_attachment.is_active = False
+                        existing_attachment.updated_by = updated_by
+                        db.session.add(existing_attachment)
+
+                    #CREATE NEW ATTACHMENT
+                    new_attachment = Attachment.model_validate(attachment.model_dump())
+                    new_attachment.is_active = True
+                    new_attachment.updated_by = updated_by
+                    new_attachment.created_by = updated_by
+                    db.session.add(new_attachment)
+
+            history_log_entry = HistoryLogCreateUpdateSch(
+                                                reference_id=obj_new.id, 
+                                                before=obj_before_update,  
+                                                after=obj_current.model_dump(), 
+                                                source_process=obj_new.lastest_source_from,
+                                                source_table="customer_dev",
+                                                updated_by=updated_by,
+                                                created_by=updated_by
+                                            )
+            hislog_db = HistoryLog.model_validate(history_log_entry.model_dump())
+            db.session.add(hislog_db)
+
+            await db.session.commit()
+            await db.session.refresh(obj_current)
+
+        except exc.IntegrityError as e:
+            await db.session.rollback()
+            raise HTTPException(status_code=409, detail=str(e._message))
+        except Exception as e:
+            await db.session.rollback()
+            raise HTTPException(status_code=409, detail=str(e))
+
+        return obj_current
+    
+    async def check_validasi(self, *, obj_in: CustomerDevCreateSch | CustomerDevUpdateSch) -> CustomerDev:
+        if obj_in.business_id_type == CustomerDevTypeEnum.PERSON and obj_in.business_id_type != {JenisIdentitasTypeEnum.KTP, JenisIdentitasTypeEnum.KIA, JenisIdentitasTypeEnum.PASPOR}:
+                raise HTTPException(status_code=400, detail=f"Invalid business_type {obj_in.business_id_type} for PERSON. Allowed: KTP, KIA, PASPOR.")
+            
+        if obj_in.business_id_type == CustomerDevTypeEnum.ORGANIZATION:
+            if obj_in.business_id_type != {JenisIdentitasTypeEnum.NIB}:
+                raise HTTPException(status_code=400, detail=f"Invalid business_type {obj_in.business_id_type} for ORGANIZATION. Allowed: NIB.")
+            if not obj_in.business_establishment_number:
+                raise HTTPException(status_code=400, detail="business_establishment_number is required for ORGANIZATION.")
+
+        if obj_in.business_id.type == JenisIdentitasTypeEnum.KTP:
+            if len(obj_in.business_id) != 16:
+                raise HTTPException(status_code=400, detail=f"Invalid KTP length. Must be 16 digits.")
+            
+        if obj_in.business_id.type == JenisIdentitasTypeEnum.KIA:
+            if len(obj_in.business_id) != 16:
+                raise HTTPException(status_code=400, detail=f"Invalid KIA length. Must be 16 digits.")
+
+        if obj_in.business_id.type == JenisIdentitasTypeEnum.PASPOR:
+            if obj_in.marital_status != "-":
+                raise HTTPException(status_code=400, detail=f"Invalid marital_status. Must be -.")
+            if len(obj_in.business_id) != 8:
+                raise HTTPException(status_code=400, detail=f"Invalid PASPOR length. Must be 8 digits.")
+            
+        if obj_in.business_id.type == JenisIdentitasTypeEnum.NIB:
+            if len(obj_in.business_id) != 13:
+                raise HTTPException(status_code=400, detail=f"Invalid NIB length. Must be 13 digits.")
+
+        if obj_in.type in (CustomerDevTypeEnum.PERSON_GROUP, CustomerDevTypeEnum.ORGANIZATION):
+            if obj_in.gender != None:
+                raise HTTPException(status_code=400, detail=f"Invalid gender. Must be None.")
+        
+        if obj_in.type in (CustomerDevTypeEnum.PERSON, CustomerDevTypeEnum.ORGANIZATION): 
+            if obj_in.nitku:
+                if len(obj_in.nitku) != 22:
+                    raise HTTPException(status_code=400, detail=f"Invalid NITKU length. Must be 22 digits.")
+
 
 customer_dev = CRUDCustomerDev(CustomerDev)

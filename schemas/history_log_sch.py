@@ -13,3 +13,7 @@ class HistoryLogUpdateSch(HistoryLogBase):
 class HistoryLogByIdSch(HistoryLogFullBase):
     pass
 
+class HistoryLogCreateUpdateSch(HistoryLogBase):
+    created_by: str
+    updated_by: str
+

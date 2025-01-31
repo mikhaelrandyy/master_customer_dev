@@ -27,7 +27,7 @@ class CustomerDevBase(SQLModel):
     country: str | None = Field(nullable=True) #ada di vs non dev
     sub_district: str | None = Field(nullable=True)  
     district: str | None = Field(nullable=True)
-    postal_code : str = Field(nullable=False) #ada di vs non dev
+    postal_code : str = Field(nullable=False, max_length=5) #ada di vs non dev
 
     nationality: NationalityEnum | None = Field(nullable=True)
     nationality_country: str | None = Field(nullable=True)
@@ -43,8 +43,8 @@ class CustomerDevBase(SQLModel):
     npwp: str | None = Field(nullable=False) #vs non dev
     nitku: str | None = Field(nullable=False)
 
-    handphone_number: str | None = Field(nullable=False) #vs non dev
-    handphone_number_secondary: str | None = Field(nullable=True)
+    handphone_number: str | None = Field(nullable=False, max_length=15) #vs non dev
+    handphone_number_secondary: str | None = Field(nullable=True,  max_length=15)
     phone_number: str | None = Field(nullable=True) #vs non dev
     email: EmailStr | None = Field(nullable=True) #vs non dev
 
