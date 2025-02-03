@@ -1,9 +1,9 @@
 from fastapi import HTTPException
 from fastapi_async_sqlalchemy import db
 from fastapi.encoders import jsonable_encoder
-from sqlmodel import and_, select
+from sqlmodel import and_, select, in_
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy import text, exc
+from sqlalchemy import select, in_, exc
 from crud.base_crud import CRUDBase
 from models import (
     CustomerDev, 
@@ -188,30 +188,30 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         return obj_current
     
     async def check_validasi(self, *, obj_in: CustomerDevCreateSch | CustomerDevUpdateSch):
-        if obj_in.business_id_type == CustomerDevTypeEnum.PERSON and obj_in.business_id_type != {JenisIdentitasTypeEnum.KTP, JenisIdentitasTypeEnum.KIA, JenisIdentitasTypeEnum.PASPOR}:
+        if obj_in.type == CustomerDevTypeEnum.PERSON and obj_in.business_id_type != {JenisIdentitasTypeEnum.KTP, JenisIdentitasTypeEnum.KIA, JenisIdentitasTypeEnum.PASPOR}:
                 raise HTTPException(status_code=400, detail=f"Invalid business_type {obj_in.business_id_type} for PERSON. Allowed: KTP, KIA, PASPOR.")
             
-        if obj_in.business_id_type == CustomerDevTypeEnum.ORGANIZATION:
+        if obj_in.type == CustomerDevTypeEnum.ORGANIZATION:
             if obj_in.business_id_type != {JenisIdentitasTypeEnum.NIB}:
                 raise HTTPException(status_code=400, detail=f"Invalid business_type {obj_in.business_id_type} for ORGANIZATION. Allowed: NIB.")
             if not obj_in.business_establishment_number:
                 raise HTTPException(status_code=400, detail="business_establishment_number is required for ORGANIZATION.")
 
-        if obj_in.business_id == JenisIdentitasTypeEnum.KTP:
+        if obj_in.business_id_type == JenisIdentitasTypeEnum.KTP:
             if len(obj_in.business_id) != 16:
                 raise HTTPException(status_code=400, detail=f"Invalid KTP length. Must be 16 digits.")
             
-        if obj_in.business_id == JenisIdentitasTypeEnum.KIA:
+        if obj_in.business_id_type == JenisIdentitasTypeEnum.KIA:
             if len(obj_in.business_id) != 16:
                 raise HTTPException(status_code=400, detail=f"Invalid KIA length. Must be 16 digits.")
 
-        if obj_in.business_id == JenisIdentitasTypeEnum.PASPOR:
+        if obj_in.business_id_type == JenisIdentitasTypeEnum.PASPOR:
             if obj_in.marital_status != "-":
                 raise HTTPException(status_code=400, detail=f"Invalid marital_status. Must be -.")
             if len(obj_in.business_id) != 8:
                 raise HTTPException(status_code=400, detail=f"Invalid PASPOR length. Must be 8 digits.")
             
-        if obj_in.business_id == JenisIdentitasTypeEnum.NIB:
+        if obj_in.business_id_type == JenisIdentitasTypeEnum.NIB:
             if len(obj_in.business_id) != 13:
                 raise HTTPException(status_code=400, detail=f"Invalid NIB length. Must be 13 digits.")
 
