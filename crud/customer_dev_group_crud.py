@@ -4,7 +4,7 @@ from sqlmodel import and_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy import text
 from crud.base_crud import CRUDBase
-from models import CustomerDevGroup, 
+from models import CustomerDevGroup
 
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch, CustomerDevGroupUpdateSch
 from sqlalchemy.orm import selectinload

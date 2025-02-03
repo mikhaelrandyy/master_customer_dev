@@ -69,12 +69,7 @@ class CustomerDevFullBase(CustomerDevBase, BaseULIDModel):
 
 class CustomerDev(CustomerDevFullBase, table=True):
     attachments: list["Attachment"] = Relationship(
-        sa_relationship_kwargs = {
-            "lazy": "select"
-        }
-    )
-
-    history_logs: list["HistoryLog"] = Relationship(
+        back_populates="customer_dev",
         sa_relationship_kwargs = {
             "lazy": "select"
         }

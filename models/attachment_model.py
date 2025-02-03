@@ -21,6 +21,7 @@ class AttachmentFullBase(AttachmentBase, BaseULIDModel):
 
 class Attachment(AttachmentFullBase, table=True):
     customer_dev: "CustomerDev" = Relationship(
+        back_populates="attachments",
         sa_relationship_kwargs = {
             "lazy": "select"
         }

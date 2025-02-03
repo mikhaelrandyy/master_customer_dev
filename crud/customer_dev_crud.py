@@ -10,26 +10,49 @@ from models import (
     CustomerDevGroup,
     HistoryLog,
     Attachment)
-from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevForAttachmentSch
+from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
 from schemas.history_log_sch import HistoryLogCreateSch, HistoryLogCreateUpdateSch
 from schemas.attachment_sch import AttachmentSch
 from common.generator import generate_number
 from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, NationalityEnum
-from datetime import datetime, timezone
+from sqlalchemy.orm import selectinload, joinedload, with_loader_criteria
 import crud
 
 
 
 class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpdateSch]):
+    async def get_by_id(self, *, id:str, is_active: bool | None = None) -> CustomerDev:
+
+        query = select(CustomerDev)
+        query = query.where(CustomerDev.id == id)
+        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) if is_active is not None else selectinload(CustomerDev.attachments))
+
+        response = await db.session.execute(query)
+        
+        return response.scalar_one_or_none()
+
+    async def get_by_ids(self, *, ids: list[str], is_active: bool | None = None) -> list[CustomerDev]:
+        query = select(CustomerDev).where(CustomerDev.id.in_(ids)) 
+        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) if is_active is not None else selectinload(CustomerDev.attachments))
+
+        # if is_active:
+        #     query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active))
+        # else:
+        #     query = query.options(selectinload(CustomerDev.attachments))
+
+        response = await db.session.execute(query)
+    
+        return response.scalars().all()
+
     async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None) -> list[CustomerDev]:
         new_customers: list[CustomerDev] = []
         try:
             for obj_in in sch:
 
-                self.check_validasi(obj_in=obj_in)
+                await self.check_validasi(obj_in=obj_in)
 
-                customer_dev = CustomerDev.model_validate(obj_in)
+                customer_dev = CustomerDev.model_validate(obj_in.model_dump())
 
                 if created_by:
                     customer_dev.created_by = customer_dev.updated_by = created_by
@@ -57,8 +80,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
                     history_log_entry = HistoryLogCreateSch(
                         reference_id=new_customer.id,
-                        before=None,
-                        after=new_customer.model_dump(),
+                        before=jsonable_encoder(new_customer),
+                        after=jsonable_encoder(new_customer),
                         source_process=new_customer.lastest_source_from,
                         source_table="customer_dev")
 
@@ -104,7 +127,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
     async def update_customer_dev(self, *, obj_current: CustomerDev, obj_new: CustomerDevUpdateSch, updated_by: str) -> CustomerDev:
         try:
-            self.check_validasi(obj_in=obj_new)
+            await self.check_validasi(obj_in=obj_new)
 
             obj_before_update = obj_current.model_dump()  
 
@@ -164,7 +187,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
         return obj_current
     
-    async def check_validasi(self, *, obj_in: CustomerDevCreateSch | CustomerDevUpdateSch) -> CustomerDev:
+    async def check_validasi(self, *, obj_in: CustomerDevCreateSch | CustomerDevUpdateSch):
         if obj_in.business_id_type == CustomerDevTypeEnum.PERSON and obj_in.business_id_type != {JenisIdentitasTypeEnum.KTP, JenisIdentitasTypeEnum.KIA, JenisIdentitasTypeEnum.PASPOR}:
                 raise HTTPException(status_code=400, detail=f"Invalid business_type {obj_in.business_id_type} for PERSON. Allowed: KTP, KIA, PASPOR.")
             
@@ -174,21 +197,21 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             if not obj_in.business_establishment_number:
                 raise HTTPException(status_code=400, detail="business_establishment_number is required for ORGANIZATION.")
 
-        if obj_in.business_id.type == JenisIdentitasTypeEnum.KTP:
+        if obj_in.business_id == JenisIdentitasTypeEnum.KTP:
             if len(obj_in.business_id) != 16:
                 raise HTTPException(status_code=400, detail=f"Invalid KTP length. Must be 16 digits.")
             
-        if obj_in.business_id.type == JenisIdentitasTypeEnum.KIA:
+        if obj_in.business_id == JenisIdentitasTypeEnum.KIA:
             if len(obj_in.business_id) != 16:
                 raise HTTPException(status_code=400, detail=f"Invalid KIA length. Must be 16 digits.")
 
-        if obj_in.business_id.type == JenisIdentitasTypeEnum.PASPOR:
+        if obj_in.business_id == JenisIdentitasTypeEnum.PASPOR:
             if obj_in.marital_status != "-":
                 raise HTTPException(status_code=400, detail=f"Invalid marital_status. Must be -.")
             if len(obj_in.business_id) != 8:
                 raise HTTPException(status_code=400, detail=f"Invalid PASPOR length. Must be 8 digits.")
             
-        if obj_in.business_id.type == JenisIdentitasTypeEnum.NIB:
+        if obj_in.business_id == JenisIdentitasTypeEnum.NIB:
             if len(obj_in.business_id) != 13:
                 raise HTTPException(status_code=400, detail=f"Invalid NIB length. Must be 13 digits.")
 
