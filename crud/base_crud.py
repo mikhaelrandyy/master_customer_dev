@@ -89,7 +89,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self,
         *,
         params: Params | None = Params(),
-        order_by: str | None = None,
+        order_by: str | None = "updated_at",
         order: OrderEnumSch | None = OrderEnumSch.ascendent,
         query: T | Select[T] | None = None,
         db_session: AsyncSession | None = None,

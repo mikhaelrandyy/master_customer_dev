@@ -1,4 +1,6 @@
-from fastapi import APIRouter, status, Depends, UploadFile, HTTPException, Response
+from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi_pagination import Params
+from sqlmodel import select
 
 from schemas.customer_dev_sch import (CustomerDevSch, CustomerDevCreateSch, CustomerDevUpdateSch)
 from schemas.response_sch import (PostResponseBaseSch, GetResponseBaseSch, GetResponsePaginatedSch, PutResponseBaseSch, create_response)
@@ -18,21 +20,13 @@ async def get_by_id(id: str, is_active: bool | None = None):
 
     return create_response(data=obj)
 
-@router.post("/create", response_model=PostResponseBaseSch[list[CustomerDevSch]], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PostResponseBaseSch[list[CustomerDevSch]], status_code=status.HTTP_201_CREATED)
 async def create(sch: list[CustomerDevCreateSch]):
     
     """Create a new object"""
 
     obj = await crud.customer_dev.create(sch=sch)
-
     response_obj = await crud.customer_dev.get_by_ids(ids=[cust.id for cust in obj], is_active=True)
-    
-    # customer_devs = []
-
-    # for cust in obj:
-    #     response_obj = await crud.customer_dev.get_by_id(id=cust.id, is_active=True)
-    #     customer_devs.append(response_obj)
-    
     return create_response(data=response_obj)
 
 @router.put("", response_model=PostResponseBaseSch[CustomerDevSch], status_code=status.HTTP_201_CREATED)
@@ -41,14 +35,10 @@ async def update(sch: CustomerDevUpdateSch):
     """Create a new object"""
 
     obj_current = await crud.customer_dev.get(id=sch.id)
-
     if not obj_current:
         raise HTTPException(status_code=404, detail=f"Customer tidak ditemukan")
 
     obj_updated = await crud.customer_dev.update_customer_dev(obj_current=obj_current, obj_new=sch, updated_by=None)
-
-    #PERBAIKAN GET BY IDS UNTUK UPDATE
-
     response_obj = await crud.customer_dev.get_by_id(id=obj_updated.id, is_active=True)
 
     return create_response(data=response_obj)

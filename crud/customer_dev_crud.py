@@ -1,9 +1,9 @@
 from fastapi import HTTPException
 from fastapi_async_sqlalchemy import db
 from fastapi.encoders import jsonable_encoder
-from sqlmodel import and_, select, in_
+from sqlmodel import and_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy import select, in_, exc
+from sqlalchemy import select, exc
 from crud.base_crud import CRUDBase
 from models import (
     CustomerDev, 
@@ -26,7 +26,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
         query = select(CustomerDev)
         query = query.where(CustomerDev.id == id)
-        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) if is_active is not None else selectinload(CustomerDev.attachments))
+        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) 
+                              if is_active is not None else selectinload(CustomerDev.attachments))
 
         response = await db.session.execute(query)
         
@@ -34,12 +35,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
     async def get_by_ids(self, *, ids: list[str], is_active: bool | None = None) -> list[CustomerDev]:
         query = select(CustomerDev).where(CustomerDev.id.in_(ids)) 
-        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) if is_active is not None else selectinload(CustomerDev.attachments))
-
-        # if is_active:
-        #     query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active))
-        # else:
-        #     query = query.options(selectinload(CustomerDev.attachments))
+        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) 
+                              if is_active is not None else selectinload(CustomerDev.attachments))
 
         response = await db.session.execute(query)
     

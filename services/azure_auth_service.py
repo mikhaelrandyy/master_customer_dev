@@ -8,8 +8,8 @@ import fastapi
 from schemas.oauth_sch import AccessToken
 from configs.config import settings
 
-tenant_id = settings.TENANT_ID
-client_id = settings.CLIENT_ID
+tenant_id = settings.AZURE_TENANT_ID
+client_id = settings.AZURE_CLIENT_ID
 
 class AuthError(Exception):
     def __init__(self, error_msg: str, status_code: int):
@@ -122,6 +122,11 @@ class AzureAuthService:
                     projects = [decoded['user_projects']] if isinstance(decoded['user_projects'], str) else decoded['user_projects']
                 else:
                     projects = []
+
+                if "user_segments" in decoded:
+                    segments = [decoded['user_segments']] if isinstance(decoded['user_segments'], str) else decoded['user_segments']
+                else:
+                    segments = []
                 
                 if "user_authorities" in decoded:
                     authorities = [decoded['user_authorities']] if isinstance(decoded['user_authorities'], str) else decoded['user_authorities']
@@ -132,11 +137,12 @@ class AzureAuthService:
                         active=True,
                         client_id=decoded["preferred_username"] if "preferred_username" in decoded else decoded["azp"],
                         scope=decoded["scp"] if "scp" in decoded else "",
-                        # authorities=['superadmin'],
                         authorities= authorities,
                         exp=decoded["exp"],
                         projects=projects,
-                        token=token
+                        token=token,
+                        name=decoded["name"] if "name" in decoded else "",
+                        segment=segments
                         ), "SUCCESS"
             except AuthError as auth_err:
                 raise auth_err
