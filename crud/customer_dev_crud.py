@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from fastapi_async_sqlalchemy import db
 from fastapi.encoders import jsonable_encoder
-from sqlmodel import and_, select
+from sqlmodel import select, or_
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy import select, exc
 from crud.base_crud import CRUDBase
@@ -14,11 +14,11 @@ from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
 from schemas.history_log_sch import HistoryLogCreateSch, HistoryLogCreateUpdateSch
 from schemas.attachment_sch import AttachmentSch
+from services.pubsub_service import PubSubService
 from common.generator import generate_number
-from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, NationalityEnum
+from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum, MaritalStatusEnum
 from sqlalchemy.orm import selectinload, joinedload, with_loader_criteria
 import crud
-
 
 
 class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpdateSch]):
@@ -28,6 +28,18 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         query = query.where(CustomerDev.id == id)
         query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) 
                               if is_active is not None else selectinload(CustomerDev.attachments))
+
+        response = await db.session.execute(query)
+        
+        return response.scalar_one_or_none()
+    
+    async def get_by_business_id(self, *, business_id:str) -> CustomerDev:
+
+        query = select(CustomerDev)
+        query = query.where(or_(CustomerDev.business_id == business_id, 
+                                CustomerDev.npwp == business_id,
+                                CustomerDev.nitku == business_id))
+        query = query.options(selectinload(CustomerDev.attachments))
 
         response = await db.session.execute(query)
         
@@ -47,7 +59,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         try:
             for obj_in in sch:
 
-                await self.check_validasi(obj_in=obj_in)
+                await self.check_validasi(obj_in=obj_in, is_action_create=True)
 
                 customer_dev = CustomerDev.model_validate(obj_in.model_dump())
 
@@ -86,6 +98,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                     db.session.add(history_log)
 
             await db.session.commit()
+
+            PubSubService().publish_to_pubsub(topic_name=None, message=new_customers, action="CREATE")
 
         except Exception as e:
             await db.session.rollback()
@@ -173,6 +187,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             db.session.add(hislog_db)
 
             await db.session.commit()
+            PubSubService().publish_to_pubsub(topic_name=None, message=obj_current, action="UPDATE")
             await db.session.refresh(obj_current)
 
         except exc.IntegrityError as e:
@@ -184,12 +199,22 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
         return obj_current
     
-    async def check_validasi(self, *, obj_in: CustomerDevCreateSch | CustomerDevUpdateSch):
-        if obj_in.type == CustomerDevTypeEnum.PERSON and obj_in.business_id_type != {JenisIdentitasTypeEnum.KTP, JenisIdentitasTypeEnum.KIA, JenisIdentitasTypeEnum.PASPOR}:
+    async def check_validasi(self, *, obj_in: CustomerDevCreateSch | CustomerDevUpdateSch, is_action_create: bool | None = None):
+
+        if is_action_create:
+            existing_customer = await self.get_by_business_id(business_id=obj_in.business_id) 
+            if existing_customer:
+                    raise HTTPException(status_code=409, detail=f"Identity Number {obj_in.business_id} already exists.")
+            
+        if not obj_in.business_id:
+            raise HTTPException(status_code=400, detail="Identity Number is required.")
+
+        if obj_in.type == CustomerDevTypeEnum.PERSON:
+            if obj_in.business_id_type not in {JenisIdentitasTypeEnum.KTP, JenisIdentitasTypeEnum.KIA, JenisIdentitasTypeEnum.PASPOR}:
                 raise HTTPException(status_code=400, detail=f"Invalid business_type {obj_in.business_id_type} for PERSON. Allowed: KTP, KIA, PASPOR.")
             
         if obj_in.type == CustomerDevTypeEnum.ORGANIZATION:
-            if obj_in.business_id_type != {JenisIdentitasTypeEnum.NIB}:
+            if obj_in.business_id_type not in {JenisIdentitasTypeEnum.NIB}:
                 raise HTTPException(status_code=400, detail=f"Invalid business_type {obj_in.business_id_type} for ORGANIZATION. Allowed: NIB.")
             if not obj_in.business_establishment_number:
                 raise HTTPException(status_code=400, detail="business_establishment_number is required for ORGANIZATION.")
@@ -203,7 +228,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 raise HTTPException(status_code=400, detail=f"Invalid KIA length. Must be 16 digits.")
 
         if obj_in.business_id_type == JenisIdentitasTypeEnum.PASPOR:
-            if obj_in.marital_status != "-":
+            if obj_in.marital_status != MaritalStatusEnum.UNKNOWN:
                 raise HTTPException(status_code=400, detail=f"Invalid marital_status. Must be -.")
             if len(obj_in.business_id) != 8:
                 raise HTTPException(status_code=400, detail=f"Invalid PASPOR length. Must be 8 digits.")
@@ -220,6 +245,5 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             if obj_in.nitku:
                 if len(obj_in.nitku) != 22:
                     raise HTTPException(status_code=400, detail=f"Invalid NITKU length. Must be 22 digits.")
-
 
 customer_dev = CRUDCustomerDev(CustomerDev)

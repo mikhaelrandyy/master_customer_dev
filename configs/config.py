@@ -8,8 +8,10 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = ""
     UI_URL: str = ""
     PUBSUB_SUFFIX: str = ""
-    AZURE_TENANT_ID: str = ""
-    AZURE_CLIENT_ID: str = ""
+    AZURE_TENANT_ID: str 
+    AZURE_CLIENT_ID: str
+    AZURE_CLIENT_SECRET: str
+    VS_AZURE_SCOPE: str
 
 
 settings = Settings()

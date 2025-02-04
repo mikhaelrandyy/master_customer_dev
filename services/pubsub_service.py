@@ -3,7 +3,8 @@ from google.cloud import pubsub_v1
 import json
 from configs.config import settings
 from google.oauth2 import service_account
-
+import crud
+import asyncio
 
 class PubSubService:
     __projectId: str
@@ -20,8 +21,9 @@ class PubSubService:
             message_dict = message.dict()
             message_dict['action'] = action
             message_dict['id'] = message.id
-            if topic_name=='master-customer':
-                message_dict['contacts'] = [i.dict() for i in message.contacts]
+            if topic_name=='master-customer-dev':
+                history_log = asyncio.run(crud.history_log.get_by_reference_id(reference_id=message.id))
+                message_dict['history-logs'] = [i.dict(exclude={"updated_at", "created_at"}) for i in history_log]
             publisher = pubsub_v1.PublisherClient()
             topic_path = publisher.topic_path(
                 self.__projectId, topic_name + settings.PUBSUB_SUFFIX)

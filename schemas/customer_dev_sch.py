@@ -12,7 +12,7 @@ class CustomerDevUpdateSch(CustomerDevBase):
     id: str
     attachments: list[AttachmentUpdateSch]
 
-
 class CustomerDevByIdSch(CustomerDevFullBase):
-    pass
+    attachments: list[AttachmentForCustomerDevSch]
+    
 

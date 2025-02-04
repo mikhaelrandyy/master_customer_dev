@@ -31,6 +31,7 @@ class MaritalStatusEnum(str, Enum):
     MARRIED = "MARRIED"
     SINGLE = "SINGLE"
     DIVORCED = "DIVORCED"
+    UNKNOWN = "-"
 
 class AddressTypeEnum(str, Enum):
     RUMAH = "RUMAH"
