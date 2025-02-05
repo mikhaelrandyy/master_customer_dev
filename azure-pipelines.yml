@@ -1,4 +1,4 @@
-name: $(Build.SourceBranchName).customer_dev-api.$(Rev:r)
+name: $(Build.SourceBranchName).customerdev-api.$(Rev:r)
 resources:
 - repo: self
   fetchDepth: 1
@@ -10,7 +10,7 @@ trigger:
 - master
 variables:
   BuildConfiguration: 'Release'
-  DockerImageName: 'vs-dev-asg/ar/$(Build.SourceBranchName)/customer_dev-api'
+  DockerImageName: 'vs-dev-asg/ar/$(Build.SourceBranchName)/customerdev-api'
 steps:
   - task: PublishBuildArtifacts@1
     displayName: "Publish Artifact"
