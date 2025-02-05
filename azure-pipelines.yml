@@ -10,7 +10,7 @@ trigger:
 - master
 variables:
   BuildConfiguration: 'Release'
-  DockerImageName: 'vs-dev-asg/ar/$(Build.SourceBranchName)/customerdev-api'
+  DockerImageName: 'vs-dev-asg/customerdev/$(Build.SourceBranchName)/customerdev-api'
 steps:
   - task: PublishBuildArtifacts@1
     displayName: "Publish Artifact"
