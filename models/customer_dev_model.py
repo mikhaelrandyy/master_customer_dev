@@ -12,44 +12,44 @@ if TYPE_CHECKING:
 
 class CustomerDevBase(SQLModel):
     type: CustomerDevTypeEnum | None = Field(nullable=True)
-    code: str | None = Field(nullable=True, unique=True) #ada di vs non dev
-    first_name: str = Field(nullable=False, max_length=40) #ada di vs non dev
-    last_name: str | None = Field(nullable=True, max_length=40) #ada di vs non dev
-    known_as: str | None = Field(nullable=True, max_length=40) #ada di vs non dev
+    code: str | None = Field(nullable=True, unique=True)
+    first_name: str | None = Field(nullable=True, max_length=40) 
+    last_name: str | None = Field(nullable=True, max_length=40) 
+    known_as: str | None = Field(nullable=True, max_length=40) 
 
-    business_id_type: JenisIdentitasTypeEnum | None = Field(nullable=False) #ada di vs non dev
-    business_id: str | None = Field(nullable=True) #ada di vs non dev
+    business_id_type: JenisIdentitasTypeEnum | None = Field(nullable=False) 
+    business_id: str | None = Field(nullable=True) 
     business_establishment_number: str | None = Field(nullable=True)
     business_id_kitas: str | None = Field(nullable=True)
     business_id_creation_date: date | None = Field(nullable=True)
     business_id_valid_until: date | None = Field(nullable=True)
 
-    address: str | None = Field(nullable=True) #ada di vs non dev
-    region: str | None = Field(nullable=True) #ada di vs non dev
-    city: str | None = Field(nullable=True) #ada di vs non dev
-    country: str | None = Field(nullable=True) #ada di vs non dev
+    address: str | None = Field(nullable=True) 
+    region: str | None = Field(nullable=True) 
+    city: str | None = Field(nullable=True) 
+    country: str | None = Field(nullable=True) 
     sub_district: str | None = Field(nullable=True)  
     district: str | None = Field(nullable=True)
-    postal_code : str = Field(nullable=False, max_length=5) #ada di vs non dev
+    postal_code : str | None = Field(nullable=True, max_length=5) 
 
     nationality: NationalityEnum | None = Field(nullable=True)
     nationality_country: str | None = Field(nullable=True)
-    date_of_birth: date | None = Field(nullable=False) #ada di vs non dev
-    place_of_birth: str | None = Field(nullable=True) #ada di vs non dev
+    date_of_birth: date | None = Field(nullable=True) 
+    place_of_birth: str | None = Field(nullable=True) 
 
-    religion: ReligionTypeEnum | None = Field(nullable=False) #ada di vs non dev
-    gender: GenderTypeEnum | None = Field(nullable=False) #ada di vs non dev
-    marital_status: MaritalStatusEnum | None = Field(nullable=False) #ada di vs non dev
+    religion: ReligionTypeEnum | None = Field(nullable=True) 
+    gender: GenderTypeEnum | None = Field(nullable=True) 
+    marital_status: MaritalStatusEnum | None = Field(nullable=True) 
 
     npwp_name: str | None = Field(nullable=True)
     npwp_address: str | None = Field(nullable=True)
-    npwp: str | None = Field(nullable=False) #vs non dev
+    npwp: str | None = Field(nullable=False)
     nitku: str | None = Field(nullable=False)
 
-    handphone_number: str | None = Field(nullable=False, max_length=15) #vs non dev
+    handphone_number: str | None = Field(nullable=True, max_length=15) 
     handphone_number_secondary: str | None = Field(nullable=True,  max_length=15)
-    phone_number: str | None = Field(nullable=True) #vs non dev
-    email: EmailStr | None = Field(nullable=True) #vs non dev
+    phone_number: str | None = Field(nullable=True) 
+    email: EmailStr | None = Field(nullable=True) 
 
     mailing_address_type: AddressTypeEnum | None = Field(nullable=True)
     mailing_other_type: str | None = Field(nullable=True)

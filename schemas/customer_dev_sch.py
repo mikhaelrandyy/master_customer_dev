@@ -3,7 +3,7 @@ from schemas.attachment_sch import AttachmentForCustomerDevSch, AttachmentUpdate
 
 
 class CustomerDevCreateSch(CustomerDevBase):
-    attachments: list[AttachmentForCustomerDevSch]
+    attachments: list[AttachmentForCustomerDevSch] | None = None
 
 class CustomerDevSch(CustomerDevFullBase):
     attachments: list[AttachmentForCustomerDevSch]
