@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from fastapi_async_sqlalchemy import db
 from fastapi.encoders import jsonable_encoder
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select, or_
 from sqlalchemy import select, exc
 from crud.base_crud import CRUDBase

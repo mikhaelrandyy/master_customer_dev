@@ -1,21 +1,34 @@
-from fastapi import APIRouter, status, HTTPException, Request
-
-from schemas.customer_dev_sch import (CustomerDevSch, CustomerDevCreateSch)
-from schemas.response_sch import (PostResponseBaseSch, GetResponseBaseSch, create_response)
+from fastapi import APIRouter, status, HTTPException, Request, Depends
+from sqlmodel import select, or_
+from sqlalchemy.orm import selectinload
+from fastapi_pagination import Params
+from schemas.customer_dev_sch import (CustomerDevSch, CustomerDevCreateSch, CustomerDevByIdSch)
+from schemas.response_sch import (PostResponseBaseSch, GetResponseBaseSch, GetResponsePaginatedSch, create_response)
 from models.customer_dev_model import CustomerDev
 import crud
 from utils.exceptions.common_exception import IdNotFoundException
 
 router = APIRouter()
 
-@router.get("", response_model=GetResponseBaseSch[list[CustomerDevSch]])
-async def get_list(is_active: bool | None = None):
-    
-    obj = await crud.customer_dev.get(is_active=is_active)
-    
-    return create_response(data=obj)
+@router.get("", response_model=GetResponsePaginatedSch[CustomerDevSch])
+async def get_list(params: Params=Depends()):
 
-@router.get("/{id}", response_model=GetResponseBaseSch[CustomerDevSch])
+    query = select(CustomerDev)
+
+    objs = await crud.customer_dev.get_multi_paginated_ordered(query=query, params=params)
+
+    return create_response(data=objs)
+
+@router.get("/no-page", response_model=GetResponseBaseSch[list[CustomerDevSch]])
+async def get_no_page():
+
+    query = select(CustomerDev)
+
+    objs = await crud.customer_dev.get_all_ordered(query=query, order_by="created_at")
+
+    return create_response(data=objs)
+
+@router.get("/{id}", response_model=GetResponseBaseSch[CustomerDevByIdSch])
 async def get_by_id(id: str, is_active: bool | None = None):
 
     obj = await  crud.customer_dev.get_by_id(id=id, is_active=is_active)
@@ -25,7 +38,7 @@ async def get_by_id(id: str, is_active: bool | None = None):
     
     return create_response(data=obj)
 
-@router.get("/business/{business_id}", response_model=GetResponseBaseSch[CustomerDevSch])
+@router.get("/business/{business_id}", response_model=GetResponseBaseSch[CustomerDevByIdSch])
 async def get_by_business_id(business_id: str):
 
     obj = await crud.customer_dev.get_by_business_id(business_id=business_id)
@@ -35,7 +48,7 @@ async def get_by_business_id(business_id: str):
     
     return create_response(data=obj)
 
-@router.post("", response_model=PostResponseBaseSch[list[CustomerDevSch]], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PostResponseBaseSch[list[CustomerDevByIdSch]], status_code=status.HTTP_201_CREATED)
 async def create(request: Request, sch: list[CustomerDevCreateSch]):
     
     """Create a new object"""
@@ -46,7 +59,7 @@ async def create(request: Request, sch: list[CustomerDevCreateSch]):
     response_obj = await crud.customer_dev.get_by_ids(ids=[cust.id for cust in obj], is_active=True)
     return create_response(data=response_obj)
 
-@router.put("/{id}", response_model=PostResponseBaseSch[CustomerDevSch], status_code=status.HTTP_201_CREATED)
+@router.put("/{id}", response_model=PostResponseBaseSch[CustomerDevByIdSch], status_code=status.HTTP_201_CREATED)
 async def update(id: str, request: Request, update_data: dict):
     
     if hasattr(request.state, 'login_user'):
