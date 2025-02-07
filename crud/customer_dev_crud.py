@@ -141,6 +141,14 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         try:
             obj_after = obj_new.get('after')
             obj_before = obj_new.get('before')
+            source_process = obj_after.get('lastest_source_from')
+            vs_reference = obj_after.get('vs_reference')
+
+            if source_process is None:
+                raise HTTPException(status_code=400, detail="source_process is required.")
+            
+            if vs_reference is None:
+                raise HTTPException(status_code=400, detail="vs_reference is required.")
 
             if obj_before is None or obj_after is None:
                 raise HTTPException(status_code=400, detail="Data 'before' dan 'after' wajib dikirim untuk melakukan perubahan.")
@@ -184,8 +192,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 reference_id=obj_current.id,
                 before=obj_new.get('before'),
                 after=obj_new.get('after'),
-                source_process=obj_after.get('lastest_source_from'),
-                vs_reference=obj_after.get('vs_reference'),
+                source_process=source_process,
+                vs_reference=vs_reference,
                 source_table="customer_dev",
                 created_by=updated_by,
                 updated_by=updated_by

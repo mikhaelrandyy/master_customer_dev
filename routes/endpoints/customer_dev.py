@@ -8,6 +8,13 @@ from utils.exceptions.common_exception import IdNotFoundException
 
 router = APIRouter()
 
+@router.get("", response_model=GetResponseBaseSch[list[CustomerDevSch]])
+async def get_list(is_active: bool | None = None):
+    
+    obj = await crud.customer_dev.get(is_active=is_active)
+    
+    return create_response(data=obj)
+
 @router.get("/{id}", response_model=GetResponseBaseSch[CustomerDevSch])
 async def get_by_id(id: str, is_active: bool | None = None):
 
