@@ -11,14 +11,14 @@ from models import (
     Attachment)
 from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
-from schemas.history_log_sch import HistoryLogCreateSch, HistoryLogCreateUpdateSch
-from schemas.attachment_sch import AttachmentSch
+from schemas.history_log_sch import HistoryLogCreateUpdateSch
 from services.pubsub_service import PubSubService
 from common.generator import generate_number
-from common.enum import CustomerDevTypeEnum, JenisIdentitasTypeEnum
+from common.enum import CustomerDevEnum, JenisIdentitasEnum
 from sqlalchemy.orm import selectinload, with_loader_criteria
 import crud
-from datetime import datetime
+from enum import Enum
+from datetime import datetime, date
 
 class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpdateSch]):
     async def get_by_id(self, *, id:str, is_active: bool | None = None) -> CustomerDev:
@@ -59,8 +59,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 existing_customer = await self.get_by_business_id(business_id=obj_in.business_id)
                 if existing_customer:
                     raise HTTPException(status_code=409, detail=f"Identity Number {obj_in.business_id} already exists.")
-
-                self.check_validasi(obj_in=obj_in.model_dump())
+                
+                # self.check_validasi(obj_in=obj_in.model_dump())
 
                 customer_dev = CustomerDev.model_validate(obj_in.model_dump())
 
@@ -83,21 +83,6 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 await self.create_customer_group(person_customer_ids=[cust.id for cust in new_customers], person_group_customer_id=customer_dev_person_group.id, created_by=created_by)
                 new_customers.append(customer_dev_person_group)
 
-            # CREATE FIRST HISTORY LOG
-            for new_customer in new_customers:
-
-                if new_customer.business_id_type != CustomerDevTypeEnum.PERSON_GROUP:
-
-                    history_log_entry = HistoryLogCreateSch(
-                        reference_id=new_customer.id,
-                        before=jsonable_encoder(new_customer),
-                        after=jsonable_encoder(new_customer),
-                        source_process=new_customer.lastest_source_from,
-                        source_table="customer_dev")
-
-                    history_log = HistoryLog.model_validate(history_log_entry.model_dump())
-                    db.session.add(history_log)
-
             await db.session.commit()
 
             # PubSubService().publish_to_pubsub(topic_name=None, message=new_customers, action="CREATE")
@@ -109,18 +94,28 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         return new_customers
     
     async def create_customer_person_group(self, *, combined_names:str, lastest_source_from:str, created_by:str) -> CustomerDev:
+        default_date = datetime.utcnow().date()
         required_fields = {
-            "type": CustomerDevTypeEnum.PERSON_GROUP,
+            "type": CustomerDevEnum.PERSON_GROUP,
             "first_name": combined_names[:40] if len(combined_names) > 40 else combined_names,
             "last_name": combined_names[40:] if len(combined_names) > 40 else "",    
-            "business_id_type": JenisIdentitasTypeEnum.KTP,
+            "business_id_type": JenisIdentitasEnum.KTP,
             "business_id": str(generate_number(digit=16)),
             "npwp": str(generate_number(digit=16)),
             "nitku": str(generate_number(digit=22)),
             "lastest_source_from": lastest_source_from,
-            "attachments": []
+            "attachments": [],
+            "code": None,
+            "business_id_creation_date": default_date,
+            "business_id_valid_until": default_date,
+            "date_of_birth": default_date,
+            "email": None
         }
         customer_dev_person_group = CustomerDevCreateSch.model_construct(**required_fields)
+        
+        for field in customer_dev_person_group.__fields__:
+            if field not in required_fields:
+                setattr(customer_dev_person_group, field, "-")
 
         db_obj = CustomerDev(**customer_dev_person_group.model_dump())
 
@@ -144,27 +139,31 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
     
     async def update_customer_dev(self, *, obj_current: CustomerDev, obj_new: dict, updated_by: str) -> CustomerDev:
         try:
-            self.check_validasi(obj_in=obj_new)
+            obj_after = obj_new.get('after')
+            obj_before = obj_new.get('before')
 
-            if 'business_id_creation_date' in obj_new:
-               obj_new['business_id_creation_date'] = datetime.strptime(obj_new['business_id_creation_date'], '%Y-%m-%d').date()
-            if 'business_id_valid_until' in obj_new:
-               obj_new['business_id_valid_until'] = datetime.strptime(obj_new['business_id_valid_until'], '%Y-%m-%d').date()
-            if 'date_of_birth' in obj_new:
-               obj_new['date_of_birth'] = datetime.strptime(obj_new['date_of_birth'], '%Y-%m-%d').date()
+            if obj_before is None or obj_after is None:
+                raise HTTPException(status_code=400, detail="Data 'before' dan 'after' wajib dikirim untuk melakukan perubahan.")
+            
+            # self.check_validasi(obj_in=obj_after)
 
-            obj_before_update = obj_current.model_dump()
+            date_fields = ['business_id_creation_date', 'business_id_valid_until', 'date_of_birth']
 
-            for field, value in obj_new.items():
+            for field in date_fields:
+                if field in obj_after:
+                    obj_after[field] = datetime.strptime(obj_after[field], '%Y-%m-%d').date()
+
+            for field in obj_after.keys():
                 if field != 'attachments' and hasattr(obj_current, field):
-                    setattr(obj_current, field, value)
+                    setattr(obj_current, field, obj_after[field])
 
             obj_current.updated_by = updated_by
+            obj_current.updated_at = datetime.utcnow()
 
             db.session.add(obj_current)
 
-            if 'attachments' in obj_new:
-                for attachment in obj_new['attachments']:
+            if 'attachments' in obj_after:
+                for attachment in obj_after.get('attachments'):
                     existing_attachment = await crud.attachment.get_by_doc_type(customer_id=obj_current.id, doc_type=attachment.get('doc_type'))
 
                     if existing_attachment:
@@ -183,9 +182,10 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             # Log perubahan
             history_log_entry = HistoryLogCreateUpdateSch(
                 reference_id=obj_current.id,
-                before=jsonable_encoder(obj_before_update),
-                after=jsonable_encoder(obj_current.model_dump()),
-                source_process=obj_new.get('lastest_source_from'),
+                before=obj_new.get('before'),
+                after=obj_new.get('after'),
+                source_process=obj_after.get('lastest_source_from'),
+                vs_reference=obj_after.get('vs_reference'),
                 source_table="customer_dev",
                 created_by=updated_by,
                 updated_by=updated_by
@@ -206,54 +206,63 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
         return obj_current
     
-    def check_validasi(self, *, obj_in: dict):
+    # def check_validasi(self, *, obj_in: dict):
 
-        type_customer = obj_in.get('type', None)
-        business_id_type = obj_in.get('business_id_type', None)
-        business_id = obj_in.get('business_id', None)
-        marital_status = obj_in.get('marital_status', None)
-        nitku = obj_in.get('nitku', None)
-        business_establishment_number = obj_in.get('business_establishment_number', None)
-        gender = obj_in.get('gender', None)
+    #     type_customer = obj_in.get('type', None)
+    #     business_id_type = obj_in.get('business_id_type', None)
+    #     business_id = obj_in.get('business_id', None)
+    #     marital_status = obj_in.get('marital_status', None)
+    #     nitku = obj_in.get('nitku', None)
+    #     business_establishment_number = obj_in.get('business_establishment_number', None)
+    #     gender = obj_in.get('gender', None)
 
-        if type_customer == CustomerDevTypeEnum.PERSON:
-            if business_id_type not in {JenisIdentitasTypeEnum.KTP, JenisIdentitasTypeEnum.KIA, JenisIdentitasTypeEnum.PASPOR}:
-                raise HTTPException(status_code=400, detail=f"Invalid business_type {business_id_type} for PERSON. Allowed: KTP, KIA, PASPOR.")
+    #     if "business_id" in obj_in and business_id is None:
+    #         raise HTTPException(status_code=400, detail="Identity Number is required.")
 
-        if not business_id:
-            raise HTTPException(status_code=400, detail="Identity Number is required.")
+    #     if business_id:
+    #         if not business_id_type:
+    #             raise HTTPException(status_code=400, detail="business_id_type is required when changing business_id.")
 
-        if type_customer == CustomerDevTypeEnum.ORGANIZATION:
-            if business_id_type not in {JenisIdentitasTypeEnum.NIB}:
-                raise HTTPException(status_code=400, detail=f"Invalid business_type {business_id_type} for ORGANIZATION. Allowed: NIB.")
-            if not business_establishment_number:
-                raise HTTPException(status_code=400, detail="business_establishment_number is required for ORGANIZATION.")
+    #         if business_id_type == JenisIdentitasEnum.KTP:
+    #             if len(business_id) != 16:
+    #                 raise HTTPException(status_code=400, detail=f"Invalid KTP length. Must be 16 digits.")
 
-        if business_id_type == JenisIdentitasTypeEnum.KTP:
-            if len(business_id) != 16:
-                raise HTTPException(status_code=400, detail=f"Invalid KTP length. Must be 16 digits.")
+    #         if business_id_type == JenisIdentitasEnum.KIA:
+    #             if len(business_id) != 16:
+    #                 raise HTTPException(status_code=400, detail=f"Invalid KIA length. Must be 16 digits.")
 
-        if business_id_type == JenisIdentitasTypeEnum.KIA:
-            if len(business_id) != 16:
-                raise HTTPException(status_code=400, detail=f"Invalid KIA length. Must be 16 digits.")
+    #         if business_id_type == JenisIdentitasEnum.PASPOR:
+    #             if marital_status:
+    #                 if marital_status != "-":
+    #                     raise HTTPException(status_code=400, detail=f"Marital_status is invalid. Must - and cannot be null")
+                    
+    #             if "marital_status" in obj_in and marital_status is None:
+    #                 raise HTTPException(status_code=400, detail="Marital Status is required.")
+                    
+    #             if len(business_id) != 8:
+    #                 raise HTTPException(status_code=400, detail=f"Invalid PASPOR length. Must be 8 digits.")
 
-        if business_id_type == JenisIdentitasTypeEnum.PASPOR:
-            if marital_status != None:
-                raise HTTPException(status_code=400, detail=f"Invalid marital_status. Must be -.")
-            if len(business_id) != 8:
-                raise HTTPException(status_code=400, detail=f"Invalid PASPOR length. Must be 8 digits.")
+    #         if business_id_type == JenisIdentitasEnum.NIB:
+    #             if len(business_id) != 13:
+    #                 raise HTTPException(status_code=400, detail=f"Invalid NIB length. Must be 13 digits.")
+        
+    #     if type_customer == CustomerDevEnum.PERSON:
+    #         if business_id_type not in {JenisIdentitasEnum.KTP, JenisIdentitasEnum.KIA, JenisIdentitasEnum.PASPOR}:
+    #             raise HTTPException(status_code=400, detail=f"Invalid business_type {business_id_type} for PERSON. Allowed: KTP, KIA, PASPOR.")
 
-        if business_id_type == JenisIdentitasTypeEnum.NIB:
-            if len(business_id) != 13:
-                raise HTTPException(status_code=400, detail=f"Invalid NIB length. Must be 13 digits.")
+    #     if type_customer == CustomerDevEnum.ORGANIZATION:
+    #         if business_id_type not in {JenisIdentitasEnum.NIB}:
+    #             raise HTTPException(status_code=400, detail=f"Invalid business_type {business_id_type} for ORGANIZATION. Allowed: NIB.")
+    #         if not business_establishment_number:
+    #             raise HTTPException(status_code=400, detail="business_establishment_number is required for ORGANIZATION.")
 
-        if type_customer in (CustomerDevTypeEnum.PERSON_GROUP, CustomerDevTypeEnum.ORGANIZATION):
-            if gender is not None:
-                raise HTTPException(status_code=400, detail=f"Invalid gender. Must be None.")
+    #     if type_customer in (CustomerDevEnum.PERSON_GROUP, CustomerDevEnum.ORGANIZATION):
+    #         if gender is not None:
+    #             raise HTTPException(status_code=400, detail=f"Invalid gender. Must be None.")
 
-        if type_customer in (CustomerDevTypeEnum.PERSON, CustomerDevTypeEnum.ORGANIZATION):
-            if nitku is None:
-                raise HTTPException(status_code=400, detail=f"Invalid NITKU length. Must be 22 digits.")
+    #     if type_customer in (CustomerDevEnum.PERSON, CustomerDevEnum.ORGANIZATION):
+    #         if nitku is None:
+    #             raise HTTPException(status_code=400, detail=f"Invalid NITKU length. Must be 22 digits.")
 
 customer_dev = CRUDCustomerDev(CustomerDev)
 

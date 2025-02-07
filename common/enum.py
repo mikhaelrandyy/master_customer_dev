@@ -1,43 +1,51 @@
 from enum import Enum
 
-class CustomerDevTypeEnum(str, Enum):
-    PERSON = "PERSON"
-    ORGANIZATION = "ORGANIZATION"
-    PERSON_GROUP = "PERSON_GROUP"
+class CustomerDevEnum(str, Enum):
+    PERSON = "person"
+    ORGANIZATION = "organization"
+    PERSON_GROUP = "person group"
+    UNKNOWN = "-"
 
-class JenisIdentitasTypeEnum(str, Enum):
-    KTP = "KTP"
-    KIA = "KIA"
-    PASPOR = "PASPOR"
-    NIB = "NIB"
+class JenisIdentitasEnum(str, Enum):
+    KTP = "ktp"
+    NIB = "nib"
+    KIA = "kia"
+    PASPOR = "paspor"
+    UNKNOWN = "-"
 
 class NationalityEnum(str, Enum):
-    WNI = "WNI"
-    WNA = "WNA"
+    WNI = "wni"
+    WNA = "wna"
+    UNKNOWN = "-"
 
-class ReligionTypeEnum(str, Enum):
-    ISLAM = "ISLAM"
-    KRISTEN = "KRISTEN"
-    KATOLIK = "KATOLIK"
-    HINDU = "HINDU"
-    BUDDHA = "BUDDHA"
-    KHONGHUCU = "KHONGHUCU"
+class ReligionEnum(str, Enum):
+    ISLAM = "islam"
+    KRISTEN = "kristen"
+    KATHOLIK ="katholik"
+    HINDU = "hindu"
+    BUDDHA = "buddha"
+    KONGHUCU = "khonghucu"
+    UNKNOWN = "-"
 
-class GenderTypeEnum(str, Enum):
-    MALE = "MALE"
-    FEMALE = "FEMALE"
+class GenderEnum(str, Enum):
+    MALE = "male"
+    FEMALE = "female"
+    UNKNOWN = "-"
 
 class MaritalStatusEnum(str, Enum):
-    MARRIED = "MARRIED"
-    SINGLE = "SINGLE"
-    DIVORCED = "DIVORCED"
+    BELUM_KAWIN = "belum kawin"
+    KAWIN = "kawin"
+    CERAI_HIDUP = "cerai hidup"
+    CERAI_MATI = "cerai mati"
+    UNKNOWN = "-"
 
-class AddressTypeEnum(str, Enum):
-    RUMAH = "RUMAH"
-    PERUSAHAAN = "PERUSAHAAN"
-    KANTOR = "KANTOR"
-    GUDANG = "GUDANG"
-    LAINNYA = "LAINNYA"
+class AddressEnum(str, Enum):
+    HOME = "rumah"
+    OFFICE = "kantor"
+    COMPANY = "perusahaan"
+    WAREHOUSE = "gudang"
+    OTHER = "lainnya"
+    UNKNOWN = "-"
 
 
 

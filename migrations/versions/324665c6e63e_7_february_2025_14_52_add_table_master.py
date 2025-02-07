@@ -1,8 +1,8 @@
-"""31-01-2025 init db
+"""7 February 2025 14:52 add table master
 
-Revision ID: b96cf011a128
+Revision ID: 324665c6e63e
 Revises: 
-Create Date: 2025-01-31 15:52:40.222414
+Create Date: 2025-02-07 15:20:30.480440
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ import sqlmodel
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b96cf011a128'
+revision = '324665c6e63e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,12 +25,12 @@ def upgrade() -> None:
     sa.Column('updated_by', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('type', sa.Enum('PERSON', 'ORGANIZATION', 'PERSON_GROUP', name='customerdevtypeenum'), nullable=True),
+    sa.Column('type', sa.Enum('PERSON', 'ORGANIZATION', 'PERSON_GROUP', 'UNKNOWN', name='customerdevenum'), nullable=True),
     sa.Column('code', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('first_name', sqlmodel.sql.sqltypes.AutoString(length=40), nullable=False),
+    sa.Column('first_name', sqlmodel.sql.sqltypes.AutoString(length=40), nullable=True),
     sa.Column('last_name', sqlmodel.sql.sqltypes.AutoString(length=40), nullable=True),
     sa.Column('known_as', sqlmodel.sql.sqltypes.AutoString(length=40), nullable=True),
-    sa.Column('business_id_type', sa.Enum('KTP', 'KIA', 'PASPOR', 'NIB', name='jenisidentitastypeenum'), nullable=False),
+    sa.Column('business_id_type', sa.Enum('KTP', 'NIB', 'KIA', 'PASPOR', 'UNKNOWN', name='jenisidentitasenum'), nullable=False),
     sa.Column('business_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('business_establishment_number', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('business_id_kitas', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -42,23 +42,23 @@ def upgrade() -> None:
     sa.Column('country', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('sub_district', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('district', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('postal_code', sqlmodel.sql.sqltypes.AutoString(length=5), nullable=False),
-    sa.Column('nationality', sa.Enum('WNI', 'WNA', name='nationalityenum'), nullable=True),
+    sa.Column('postal_code', sqlmodel.sql.sqltypes.AutoString(length=5), nullable=True),
+    sa.Column('nationality', sa.Enum('WNI', 'WNA', 'UNKNOWN', name='nationalityenum'), nullable=True),
     sa.Column('nationality_country', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('date_of_birth', sa.Date(), nullable=False),
+    sa.Column('date_of_birth', sa.Date(), nullable=True),
     sa.Column('place_of_birth', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('religion', sa.Enum('ISLAM', 'KRISTEN', 'KATOLIK', 'HINDU', 'BUDDHA', 'KHONGHUCU', name='religiontypeenum'), nullable=False),
-    sa.Column('gender', sa.Enum('MALE', 'FEMALE', name='gendertypeenum'), nullable=False),
-    sa.Column('marital_status', sa.Enum('MARRIED', 'SINGLE', 'DIVORCED', name='maritalstatusenum'), nullable=False),
+    sa.Column('religion', sa.Enum('ISLAM', 'KRISTEN', 'KATHOLIK', 'HINDU', 'BUDDHA', 'KONGHUCU', 'UNKNOWN', name='religionenum'), nullable=True),
+    sa.Column('gender', sa.Enum('MALE', 'FEMALE', 'UNKNOWN', name='genderenum'), nullable=True),
+    sa.Column('marital_status', sa.Enum('BELUM_KAWIN', 'KAWIN', 'CERAI_HIDUP', 'CERAI_MATI', 'UNKNOWN', name='maritalstatusenum'), nullable=True),
     sa.Column('npwp_name', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('npwp_address', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('npwp', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('nitku', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('handphone_number', sqlmodel.sql.sqltypes.AutoString(length=15), nullable=False),
+    sa.Column('handphone_number', sqlmodel.sql.sqltypes.AutoString(length=15), nullable=True),
     sa.Column('handphone_number_secondary', sqlmodel.sql.sqltypes.AutoString(length=15), nullable=True),
     sa.Column('phone_number', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('email', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('mailing_address_type', sa.Enum('RUMAH', 'PERUSAHAAN', 'KANTOR', 'GUDANG', 'LAINNYA', name='addresstypeenum'), nullable=True),
+    sa.Column('mailing_address_type', sa.Enum('HOME', 'OFFICE', 'COMPANY', 'WAREHOUSE', 'OTHER', 'UNKNOWN', name='addressenum'), nullable=True),
     sa.Column('mailing_other_type', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('mailing_address', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('mailing_sub_district', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -83,6 +83,7 @@ def upgrade() -> None:
     sa.Column('after', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('source_process', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('source_table', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('vs_reference', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_history_log_id'), 'history_log', ['id'], unique=False)
