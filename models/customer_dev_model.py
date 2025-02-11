@@ -61,8 +61,6 @@ class CustomerDevBase(SQLModel):
     mailing_country: str | None = Field(nullable=True)
     mailing_postal_code: str | None = Field(nullable=True)
 
-    lastest_source_from: str | None = Field(nullable=True) #TERAHKIR DI UPDATE 
-
 class CustomerDevFullBase(CustomerDevBase, BaseULIDModel):
     pass
 

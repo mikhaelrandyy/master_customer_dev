@@ -4,14 +4,12 @@ class CustomerDevEnum(str, Enum):
     PERSON = "person"
     ORGANIZATION = "organization"
     PERSON_GROUP = "person group"
-    UNKNOWN = "-"
 
 class JenisIdentitasEnum(str, Enum):
     KTP = "ktp"
     NIB = "nib"
     KIA = "kia"
     PASPOR = "paspor"
-    UNKNOWN = "-"
 
 class NationalityEnum(str, Enum):
     WNI = "wni"

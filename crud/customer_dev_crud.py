@@ -78,7 +78,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             # IF CUSTOMER DEV IS MORE THAN 1, THEN CREATE CUSTOMER DEV PERSON GROUP
             if len(sch) > 1:
                 combined_names = " & ".join([f"{cust.first_name or ''} {cust.last_name or ''}".strip() for cust in new_customers])
-                customer_dev_person_group = await self.create_customer_person_group(combined_names=combined_names, lastest_source_from=new_customers[0].lastest_source_from, created_by=created_by)
+                customer_dev_person_group = await self.create_customer_person_group(combined_names=combined_names, created_by=created_by)
+                # customer_dev_person_group = await self.create_customer_person_group(combined_names=combined_names, lastest_source_from=new_customers[0].lastest_source_from, created_by=created_by)
 
                 # THEN MAPPING CUSTOMER DEV PERSON WITH CUSTOMER DEV PERSON GROUP
                 await self.create_customer_group(person_customer_ids=[cust.id for cust in new_customers], person_group_customer_id=customer_dev_person_group.id, created_by=created_by)
@@ -94,8 +95,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         
         return new_customers
     
-    async def create_customer_person_group(self, *, combined_names:str, lastest_source_from:str, created_by:str) -> CustomerDev:
-        default_date = datetime.utcnow().date()
+    async def create_customer_person_group(self, *, combined_names:str, created_by:str) -> CustomerDev:
+        # default_date = datetime.utcnow().date()
         required_fields = {
             "type": CustomerDevEnum.PERSON_GROUP,
             "first_name": combined_names[:40] if len(combined_names) > 40 else combined_names,
@@ -104,19 +105,21 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             "business_id": str(generate_number(digit=16)),
             "npwp": str(generate_number(digit=16)),
             "nitku": str(generate_number(digit=22)),
-            "lastest_source_from": lastest_source_from,
-            "attachments": [],
-            "code": None,
-            "business_id_creation_date": default_date,
-            "business_id_valid_until": default_date,
-            "date_of_birth": default_date,
-            "email": None
+            # "lastest_source_from": lastest_source_from,
+            "attachments": []
+            # "code": None,
+            # "business_id_creation_date": default_date,
+            # "business_id_valid_until": default_date,
+            # "date_of_birth": default_date
+            # "email": None
         }
         customer_dev_person_group = CustomerDevCreateSch.model_construct(**required_fields)
         
         for field in customer_dev_person_group.__fields__:
             if field not in required_fields:
-                setattr(customer_dev_person_group, field, "-")
+                # setattr(customer_dev_person_group, field, "-")
+                setattr(customer_dev_person_group, field, None)
+
 
         db_obj = CustomerDev(**customer_dev_person_group.model_dump())
 
@@ -142,8 +145,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         try:
             obj_after = obj_new.get('after')
             obj_before = obj_new.get('before')
-            source_process = obj_after.get('lastest_source_from')
-            vs_reference = obj_after.get('vs_reference')
+            source_process = obj_new.get('lastest_source_from')
+            vs_reference = obj_new.get('vs_reference')
 
             if source_process is None:
                 raise HTTPException(status_code=400, detail="source_process is required.")

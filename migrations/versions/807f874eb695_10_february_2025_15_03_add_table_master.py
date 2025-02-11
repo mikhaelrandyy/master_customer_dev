@@ -1,8 +1,8 @@
-"""7 February 2025 14:52 add table master
+"""10 February 2025 15:03 add table master
 
-Revision ID: 324665c6e63e
+Revision ID: 807f874eb695
 Revises: 
-Create Date: 2025-02-07 15:20:30.480440
+Create Date: 2025-02-10 15:07:50.316577
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ import sqlmodel
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '324665c6e63e'
+revision = '807f874eb695'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,12 +25,12 @@ def upgrade() -> None:
     sa.Column('updated_by', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('type', sa.Enum('PERSON', 'ORGANIZATION', 'PERSON_GROUP', 'UNKNOWN', name='customerdevenum'), nullable=True),
+    sa.Column('type', sa.Enum('PERSON', 'ORGANIZATION', 'PERSON_GROUP', name='customerdevenum'), nullable=True),
     sa.Column('code', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('first_name', sqlmodel.sql.sqltypes.AutoString(length=40), nullable=True),
     sa.Column('last_name', sqlmodel.sql.sqltypes.AutoString(length=40), nullable=True),
     sa.Column('known_as', sqlmodel.sql.sqltypes.AutoString(length=40), nullable=True),
-    sa.Column('business_id_type', sa.Enum('KTP', 'NIB', 'KIA', 'PASPOR', 'UNKNOWN', name='jenisidentitasenum'), nullable=False),
+    sa.Column('business_id_type', sa.Enum('KTP', 'NIB', 'KIA', 'PASPOR', name='jenisidentitasenum'), nullable=False),
     sa.Column('business_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('business_establishment_number', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('business_id_kitas', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -67,7 +67,6 @@ def upgrade() -> None:
     sa.Column('mailing_region', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('mailing_country', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('mailing_postal_code', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('lastest_source_from', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('code')
     )
