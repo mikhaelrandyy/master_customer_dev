@@ -9,7 +9,7 @@ class AttachmentSch(AttachmentFullBase):
     pass 
 
 class AttachmentUpdateSch(AttachmentBase):
-    id: str | None
+    pass
 
 class AttachmentByIdSch(AttachmentFullBase):
     pass

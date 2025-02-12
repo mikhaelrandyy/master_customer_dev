@@ -11,11 +11,6 @@ class JenisIdentitasEnum(str, Enum):
     KIA = "kia"
     PASPOR = "paspor"
 
-class NationalityEnum(str, Enum):
-    WNI = "wni"
-    WNA = "wna"
-    UNKNOWN = "-"
-
 class ReligionEnum(str, Enum):
     ISLAM = "islam"
     KRISTEN = "kristen"
@@ -26,9 +21,8 @@ class ReligionEnum(str, Enum):
     UNKNOWN = "-"
 
 class GenderEnum(str, Enum):
-    MALE = "male"
-    FEMALE = "female"
-    UNKNOWN = "-"
+    MALE = "laki - laki"
+    FEMALE = "perempuan"
 
 class MaritalStatusEnum(str, Enum):
     BELUM_KAWIN = "belum kawin"

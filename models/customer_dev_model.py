@@ -1,6 +1,6 @@
 from ulid import ULID
 from sqlmodel import Field, Relationship
-from common.enum import CustomerDevEnum, JenisIdentitasEnum, NationalityEnum, ReligionEnum, GenderEnum, MaritalStatusEnum, AddressEnum
+from common.enum import CustomerDevEnum, JenisIdentitasEnum, ReligionEnum, GenderEnum, MaritalStatusEnum, AddressEnum
 from datetime import date
 from pydantic import EmailStr
 from typing import TYPE_CHECKING
@@ -32,7 +32,7 @@ class CustomerDevBase(SQLModel):
     district: str | None = Field(nullable=True)
     postal_code : str | None = Field(nullable=True, max_length=5) 
 
-    nationality: NationalityEnum | None = Field(nullable=True)
+    nationality: str | None = Field(nullable=True)
     nationality_country: str | None = Field(nullable=True)
     date_of_birth: date | None = Field(nullable=True) 
     place_of_birth: str | None = Field(nullable=True) 

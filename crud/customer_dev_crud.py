@@ -20,6 +20,7 @@ from sqlalchemy.orm import selectinload, with_loader_criteria
 import crud
 from enum import Enum
 from datetime import datetime, date
+import json
 
 class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpdateSch]):
     async def get_by_id(self, *, id:str, is_active: bool | None = None) -> CustomerDev:
@@ -105,8 +106,9 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             "business_id": str(generate_number(digit=16)),
             "npwp": str(generate_number(digit=16)),
             "nitku": str(generate_number(digit=22)),
-            # "lastest_source_from": lastest_source_from,
+            "gender": None,
             "attachments": []
+            # "lastest_source_from": lastest_source_from,
             # "code": None,
             # "business_id_creation_date": default_date,
             # "business_id_valid_until": default_date,
@@ -117,8 +119,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         
         for field in customer_dev_person_group.__fields__:
             if field not in required_fields:
-                # setattr(customer_dev_person_group, field, "-")
-                setattr(customer_dev_person_group, field, None)
+                setattr(customer_dev_person_group, field, "-")
+                # setattr(customer_dev_person_group, field, None)
 
 
         db_obj = CustomerDev(**customer_dev_person_group.model_dump())
@@ -194,8 +196,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             # Log perubahan
             history_log_entry = HistoryLogCreateUpdateSch(
                 reference_id=obj_current.id,
-                before=obj_new.get('before'),
-                after=obj_new.get('after'),
+                before=jsonable_encoder(obj_new.get('before')),
+                after=jsonable_encoder(obj_new.get('after')),
                 source_process=source_process,
                 vs_reference=vs_reference,
                 source_table="customer_dev",
