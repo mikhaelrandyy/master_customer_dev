@@ -10,7 +10,7 @@ from models import (
     CustomerDevGroup,
     HistoryLog,
     Attachment)
-from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch
+from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevByIdSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
 from schemas.history_log_sch import HistoryLogCreateUpdateSch
 from services.pubsub_service import PubSubService
@@ -45,7 +45,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         
         return response.scalar_one_or_none()
 
-    async def get_by_ids(self, *, ids: list[str], is_active: bool | None = None) -> list[CustomerDev]:
+    async def get_by_ids(self, *, ids: list[str], is_active: bool | None = None) -> list[CustomerDevByIdSch]:
         query = select(CustomerDev).where(CustomerDev.id.in_(ids)) 
         query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) 
                               if is_active is not None else selectinload(CustomerDev.attachments))
@@ -54,8 +54,9 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
     
         return response.scalars().all()
 
-    async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None) -> list[CustomerDev]:
-        new_customers: list[CustomerDev] = []
+    async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None) -> list[CustomerDevByIdSch]:
+        new_customers: list[CustomerDevByIdSch] = []
+        new_customers_pubsub: list[CustomerDev] = []
         try:
             for obj_in in sch:
                 existing_customer = await self.get_by_business_id(business_id=obj_in.business_id)
@@ -72,15 +73,18 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 for attachment in obj_in.attachments:
                     customer_dev.attachments.append(Attachment(**attachment.model_dump(), created_by=created_by, updated_by=created_by, is_active=True))
 
+                obj = CustomerDevByIdSch.from_orm(customer_dev)
+                obj.reference_id = obj_in.reference_id
+
                 db.session.add(customer_dev)
                 await db.session.flush()
-                new_customers.append(customer_dev)
+                new_customers.append(obj)
+                new_customers_pubsub.append(customer_dev)
 
             # IF CUSTOMER DEV IS MORE THAN 1, THEN CREATE CUSTOMER DEV PERSON GROUP
             if len(sch) > 1:
                 combined_names = " & ".join([f"{cust.first_name or ''} {cust.last_name or ''}".strip() for cust in new_customers])
                 customer_dev_person_group = await self.create_customer_person_group(combined_names=combined_names, created_by=created_by)
-                # customer_dev_person_group = await self.create_customer_person_group(combined_names=combined_names, lastest_source_from=new_customers[0].lastest_source_from, created_by=created_by)
 
                 # THEN MAPPING CUSTOMER DEV PERSON WITH CUSTOMER DEV PERSON GROUP
                 await self.create_customer_group(person_customer_ids=[cust.id for cust in new_customers], person_group_customer_id=customer_dev_person_group.id, created_by=created_by)
@@ -88,7 +92,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             await db.session.commit()
 
-            # PubSubService().publish_to_pubsub(topic_name=None, message=new_customers, action="CREATE")
+            # PubSubService().publish_to_pubsub(topic_name=None, message=new_customers_pubsub, action="CREATE")
 
         except Exception as e:
             await db.session.rollback()

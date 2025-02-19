@@ -54,11 +54,8 @@ async def create(request: Request, sch: list[CustomerDevCreateSch]):
     """Create a new object"""
     if hasattr(request.state, 'login_user'):
         login_user=request.state.login_user
-
     obj = await crud.customer_dev.create(sch=sch, created_by=login_user.client_id)
-    response_obj = await crud.customer_dev.get_by_ids(ids=[cust.id for cust in obj], is_active=True)
-    modified_response = [CustomerDevByIdSch(**resp.dict(), reference_id=ref.reference_id, attachments=resp.attachments) for resp, ref in zip(response_obj, sch)]
-    return create_response(data=modified_response)
+    return create_response(data=obj)
 
 @router.put("/{id}", response_model=PostResponseBaseSch[CustomerDevByIdSch], status_code=status.HTTP_201_CREATED)
 async def update(id: str, request: Request, update_data: dict):
