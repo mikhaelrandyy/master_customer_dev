@@ -94,6 +94,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             for obj_in in new_customers:
                 PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_in, action="create")
+                print(obj_in)
 
         except Exception as e:
             await db.session.rollback()
