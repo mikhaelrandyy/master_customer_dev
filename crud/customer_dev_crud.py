@@ -111,13 +111,14 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             "npwp": str(generate_number(digit=16)),
             "nitku": str(generate_number(digit=22)),
             "gender": None,
+            "religion": None,
+            "marital_status": None,
+            "mailing_address_type": None,
+            "business_id_creation_date": None,
+            "business_id_valid_until": None,
+            "date_of_birth": None,
+            "email": None,
             "attachments": []
-            # "lastest_source_from": lastest_source_from,
-            # "code": None,
-            # "business_id_creation_date": default_date,
-            # "business_id_valid_until": default_date,
-            # "date_of_birth": default_date
-            # "email": None
         }
         customer_dev_person_group = CustomerDevCreateSch.model_construct(**required_fields)
         
