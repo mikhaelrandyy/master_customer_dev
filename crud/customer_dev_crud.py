@@ -56,7 +56,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
     async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None) -> list[CustomerDevByIdSch]:
         new_customers: list[CustomerDevByIdSch] = []
-        new_customers_pubsub: list[CustomerDev] = []
+        # new_customers_pubsub: list[CustomerDev] = []
         try:
             for obj_in in sch:
                 existing_customer = await self.get_by_business_id(business_id=obj_in.business_id)
@@ -79,7 +79,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 db.session.add(customer_dev)
                 await db.session.flush()
                 new_customers.append(obj)
-                new_customers_pubsub.append(customer_dev)
+                # new_customers_pubsub.append(customer_dev)
 
             # IF CUSTOMER DEV IS MORE THAN 1, THEN CREATE CUSTOMER DEV PERSON GROUP
             if len(sch) > 1:
@@ -92,7 +92,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             await db.session.commit()
 
-            for obj_in in new_customers_pubsub:
+            for obj_in in new_customers:
                 PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_in, action="create")
 
         except Exception as e:
