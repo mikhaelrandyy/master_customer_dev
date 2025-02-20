@@ -6,7 +6,7 @@ class CustomerDevCreateSch(CustomerDevBase):
     attachments: list[AttachmentForCustomerDevSch] | None = None
 
 class CustomerDevSch(CustomerDevFullBase):
-    pass
+    reference_id: str | None = None
 
 class CustomerDevUpdateSch(CustomerDevBase):
     attachments: list[AttachmentUpdateSch] | None = None

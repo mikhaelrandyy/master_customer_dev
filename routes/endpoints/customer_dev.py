@@ -48,7 +48,7 @@ async def get_by_business_id(business_id: str):
     
     return create_response(data=obj)
 
-@router.post("", response_model=PostResponseBaseSch[list[CustomerDevByIdSch]], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PostResponseBaseSch[list[CustomerDevSch]], status_code=status.HTTP_201_CREATED)
 async def create(request: Request, sch: list[CustomerDevCreateSch]):
     
     """Create a new object"""

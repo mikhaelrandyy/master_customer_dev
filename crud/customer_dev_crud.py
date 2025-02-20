@@ -10,7 +10,7 @@ from models import (
     CustomerDevGroup,
     HistoryLog,
     Attachment)
-from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevByIdSch
+from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevByIdSch, CustomerDevSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
 from schemas.history_log_sch import HistoryLogCreateUpdateSch
 from services.pubsub_service import PubSubService
@@ -54,9 +54,9 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
     
         return response.scalars().all()
 
-    async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None) -> list[CustomerDevByIdSch]:
+    async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None) -> list[CustomerDevSch]:
         new_customers: list[CustomerDevByIdSch] = []
-        # new_customers_pubsub: list[CustomerDev] = []
+        new_customer: list[CustomerDevSch] = []
         try:
             for obj_in in sch:
                 existing_customer = await self.get_by_business_id(business_id=obj_in.business_id)
@@ -71,15 +71,16 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                     customer_dev.created_by = customer_dev.updated_by = created_by
 
                 for attachment in obj_in.attachments:
-                    customer_dev.attachments.append(Attachment(**attachment.model_dump(), created_by=created_by, updated_by=created_by, is_active=True))
-
-                obj = CustomerDevByIdSch.from_orm(customer_dev)
-                obj.reference_id = obj_in.reference_id
+                    attachment_obj = Attachment(**attachment.model_dump(), created_by=created_by, updated_by=created_by, is_active=True)
+                    customer_dev.attachments.append(attachment_obj)
 
                 db.session.add(customer_dev)
                 await db.session.flush()
-                new_customers.append(obj)
-                # new_customers_pubsub.append(customer_dev)
+                await db.session.refresh(customer_dev, ["attachments"])
+
+                customer_obj = CustomerDevByIdSch(**customer_dev.model_dump(), reference_id=obj_in.reference_id)
+                new_customers.append(customer_obj)
+                new_customer.append(customer_obj)
 
             # IF CUSTOMER DEV IS MORE THAN 1, THEN CREATE CUSTOMER DEV PERSON GROUP
             if len(sch) > 1:
@@ -92,18 +93,16 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             await db.session.commit()
 
-            for obj_in in new_customers:
-                PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_in, action="create")
-                print(obj_in)
+            # for obj_pubsub in new_customers:
+            #     PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_pubsub, action="create")
 
         except Exception as e:
             await db.session.rollback()
             raise HTTPException(status_code=409, detail=str(e))
         
-        return new_customers
+        return new_customer
     
     async def create_customer_person_group(self, *, combined_names:str, created_by:str) -> CustomerDev:
-        # default_date = datetime.utcnow().date()
         required_fields = {
             "type": CustomerDevEnum.PERSON_GROUP,
             "first_name": combined_names[:40] if len(combined_names) > 40 else combined_names,
@@ -127,7 +126,6 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         for field in customer_dev_person_group.__fields__:
             if field not in required_fields:
                 setattr(customer_dev_person_group, field, "-")
-                # setattr(customer_dev_person_group, field, None)
 
 
         db_obj = CustomerDev(**customer_dev_person_group.model_dump())
