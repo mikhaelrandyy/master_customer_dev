@@ -78,7 +78,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 await db.session.flush()
                 await db.session.refresh(customer_dev, ["attachments"])
 
-                customer_obj = CustomerDevByIdSch(**customer_dev.model_dump(), reference_id=obj_in.reference_id)
+                customer_obj = CustomerDevByIdSch(**customer_dev.model_dump(), reference_id=obj_in.reference_id, attachments=[attachment.model_dump() for attachment in customer_dev.attachments])
                 new_customers.append(customer_obj)
                 new_customer.append(customer_obj)
 
@@ -215,7 +215,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             await db.session.commit()
             await db.session.refresh(obj_current)
-            PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_current, action="update")
+            # PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_current, action="update")
 
         except exc.IntegrityError as e:
             await db.session.rollback()
