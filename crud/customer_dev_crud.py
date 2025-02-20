@@ -90,11 +90,12 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 # THEN MAPPING CUSTOMER DEV PERSON WITH CUSTOMER DEV PERSON GROUP
                 await self.create_customer_group(person_customer_ids=[cust.id for cust in new_customers], person_group_customer_id=customer_dev_person_group.id, created_by=created_by)
                 new_customers.append(customer_dev_person_group)
+                new_customer.append(customer_dev_person_group)
 
             await db.session.commit()
 
-            # for obj_pubsub in new_customers:
-            #     PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_pubsub, action="create")
+            for obj_pubsub in new_customers:
+                PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_pubsub, action="create")
 
         except Exception as e:
             await db.session.rollback()
