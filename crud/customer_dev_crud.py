@@ -61,7 +61,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             for obj_in in sch:
                 existing_customer = await self.get_by_business_id(business_id=obj_in.business_id)
                 if existing_customer:
-                    raise HTTPException(status_code=409, detail=f"Identity Number {obj_in.business_id} already exists.")
+                    new_customer.append(existing_customer)
+                    continue
                 
                 # self.check_validasi(obj_in=obj_in.model_dump())
 
@@ -112,6 +113,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             "business_id": str(generate_number(digit=16)),
             "npwp": str(generate_number(digit=16)),
             "nitku": str(generate_number(digit=22)),
+            "code": None,
             "gender": None,
             "religion": None,
             "marital_status": None,
