@@ -97,6 +97,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             for obj_pubsub in new_customers:
                 PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_pubsub, action="create")
+                mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_in.id)
 
         except Exception as e:
             await db.session.rollback()
@@ -139,15 +140,11 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         await db.session.flush()
         return db_obj
     
-    async def create_customer_group(self, *, person_customer_ids:list[str], person_group_customer_id:str, created_by:str):
+    async def create_customer_group(self, *, person_customer_ids:list[str], person_group_customer_id:str):
         for person_customer_id in person_customer_ids:
-            customer_dev_group = CustomerDevGroupCreateSch(
-                                                        customer_parent_id = person_group_customer_id,
-                                                        customer_reference_id = person_customer_id)
+            customer_dev_group = CustomerDevGroupCreateSch(customer_parent_id = person_group_customer_id, customer_reference_id = person_customer_id)
 
-            db_obj = CustomerDevGroup.model_validate(customer_dev_group.model_dump())
-            if created_by:
-                db_obj.created_by = db_obj.updated_by = created_by
+            db_obj = CustomerDevGroup(customer_dev_group.model_dump())
 
             db.session.add(db_obj)
     
