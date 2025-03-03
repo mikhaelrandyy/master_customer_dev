@@ -97,7 +97,9 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             for obj_pubsub in new_customers:
                 PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_pubsub, action="create")
-                mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_in.id)
+                mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_pubsub.id)
+                for map_obj in mapping_cust_group:
+                    PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="update")
 
         except Exception as e:
             await db.session.rollback()
