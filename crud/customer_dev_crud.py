@@ -10,7 +10,7 @@ from models import (
     CustomerDevGroup,
     HistoryLog,
     Attachment)
-from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevByIdSch, CustomerDevSch
+from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevByIdSch, CustomerDevSch, ChangeDataSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
 from schemas.history_log_sch import HistoryLogCreateUpdateSch
 from services.pubsub_service import PubSubService
@@ -150,14 +150,14 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             db.session.add(db_obj)
     
-    async def update_customer_dev(self, *, obj_current: CustomerDev, obj_new: dict, updated_by: str) -> CustomerDev:
+    async def update_customer_dev(self, *, obj_current: CustomerDev, obj_new: ChangeDataSch, updated_by: str) -> CustomerDev:
         try:
-            obj_after = obj_new.get('after')
-            obj_before = obj_new.get('before')
-            source_process = obj_new.get('lastest_source_from')
-            vs_reference = obj_new.get('vs_reference')
+            obj_after = obj_new.after
+            obj_before = obj_new.before
+            source_process = obj_new.lastest_source_from
+            vs_reference = obj_new.vs_reference
 
-            if source_process is None:
+            if obj_new.lastest_source_from is None:
                 raise HTTPException(status_code=400, detail="source_process is required.")
             
             if vs_reference is None:
@@ -203,8 +203,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             # Log perubahan
             history_log_entry = HistoryLogCreateUpdateSch(
                 reference_id=obj_current.id,
-                before=jsonable_encoder(obj_new.get('before')),
-                after=jsonable_encoder(obj_new.get('after')),
+                before=jsonable_encoder(obj_before),
+                after=jsonable_encoder(obj_after),
                 source_process=source_process,
                 vs_reference=vs_reference,
                 source_table="customer_dev",
@@ -216,7 +216,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             await db.session.commit()
             await db.session.refresh(obj_current)
-            
+
             PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_current, action="update")
             mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_current.id)
             for map_obj in mapping_cust_group:

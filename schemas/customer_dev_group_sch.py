@@ -1,15 +1,15 @@
-from models.customer_dev_group_model import CustomerDevGroupBase, CustomerDevGroupFullBase
+from models.customer_dev_group_model import CustomerDevGroupBase
 
 
 class CustomerDevGroupCreateSch(CustomerDevGroupBase):
     pass
 
-class CustomerDevGroupSch(CustomerDevGroupFullBase):
+class CustomerDevGroupSch(CustomerDevGroupBase):
     pass 
 
 class CustomerDevGroupUpdateSch(CustomerDevGroupBase):
     pass
 
-class CustomerDevGroupByIdSch(CustomerDevGroupFullBase):
+class CustomerDevGroupByIdSch(CustomerDevGroupBase):
     pass
 

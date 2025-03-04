@@ -2,7 +2,7 @@ from fastapi import APIRouter, status, HTTPException, Request, Depends
 from sqlmodel import select, or_
 from sqlalchemy.orm import selectinload
 from fastapi_pagination import Params
-from schemas.customer_dev_sch import (CustomerDevSch, CustomerDevCreateSch, CustomerDevByIdSch)
+from schemas.customer_dev_sch import (CustomerDevSch, CustomerDevCreateSch, CustomerDevByIdSch, ChangeDataSch)
 from schemas.response_sch import (PostResponseBaseSch, GetResponseBaseSch, GetResponsePaginatedSch, create_response)
 from models.customer_dev_model import CustomerDev
 import crud
@@ -58,7 +58,7 @@ async def create(request: Request, sch: list[CustomerDevCreateSch]):
     return create_response(data=obj)
 
 @router.put("/{id}", response_model=PostResponseBaseSch[CustomerDevByIdSch], status_code=status.HTTP_201_CREATED)
-async def update(id: str, request: Request, update_data: dict):
+async def update(id: str, request: Request, update_data: ChangeDataSch):
     
     if hasattr(request.state, 'login_user'):
         login_user = request.state.login_user
