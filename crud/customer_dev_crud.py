@@ -13,7 +13,6 @@ from models import (
 from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevByIdSch, CustomerDevSch, ChangeDataSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
 from schemas.history_log_sch import HistoryLogCreateUpdateSch
-from services.pubsub_service import PubSubService
 from common.generator import generate_number
 from common.enum import CustomerDevEnum, JenisIdentitasEnum
 from sqlalchemy.orm import selectinload, with_loader_criteria
@@ -54,58 +53,62 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
     
         return response.scalars().all()
 
-    async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None) -> list[CustomerDevSch]:
-        new_customers: list[CustomerDevByIdSch] = []
-        new_customer: list[CustomerDevSch] = []
+    async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None):
+        objs = []
         try:
-            for obj_in in sch:
-                existing_customer = await self.get_by_business_id(business_id=obj_in.business_id)
-                if existing_customer:
-                    new_customer.append(existing_customer)
-                    continue
-                
+            for obj_new in sch:
                 # self.check_validasi(obj_in=obj_in.model_dump())
+                cust_db_obj = await self.get_by_business_id(business_id=obj_new.business_id)
+                if cust_db_obj:
+                    obj_data = jsonable_encoder(cust_db_obj)
+                    if isinstance(obj_new, dict):
+                        update_data = obj_new
+                    else:
+                        update_data = obj_new.dict(exclude_unset=True)  # This tells Pydantic to not include the values that were not sent
+                    for field in obj_data:
+                        if field in update_data:
+                            setattr(cust_db_obj, field, update_data[field])
+                        elif created_by and created_by != '' and field == "updated_by":
+                            setattr(cust_db_obj, field, created_by)
+                else:
+                    cust_db_obj = CustomerDev(**obj_new.model_dump(), created_by=created_by, updated_by=created_by)
 
-                customer_dev = CustomerDev.model_validate(obj_in.model_dump())
-
-                if created_by:
-                    customer_dev.created_by = customer_dev.updated_by = created_by
-
-                for attachment in obj_in.attachments:
-                    attachment_obj = Attachment(**attachment.model_dump(), created_by=created_by, updated_by=created_by, is_active=True)
-                    customer_dev.attachments.append(attachment_obj)
-
-                db.session.add(customer_dev)
+                db.session.add(cust_db_obj)
                 await db.session.flush()
-                await db.session.refresh(customer_dev, ["attachments"])
 
-                customer_obj = CustomerDevByIdSch(**customer_dev.model_dump(), reference_id=obj_in.reference_id, attachments=[attachment.model_dump() for attachment in customer_dev.attachments])
-                new_customers.append(customer_obj)
-                new_customer.append(customer_obj)
+                for obj_new_attach in obj_new.attachments:
+                    existing_attachment = await crud.attachment.get_by_doc_type(customer_id=cust_db_obj.id, doc_type=obj_new_attach.doc_type)
+
+                    if existing_attachment:
+                        existing_attachment.is_active = False
+                        existing_attachment.updated_by = created_by
+                        db.session.add(existing_attachment)
+
+                    attach_db_obj = Attachment(**obj_new_attach.model_dump(), created_by=created_by, updated_by=created_by, is_active=True)
+                    db.session.add(attach_db_obj)
+                
+                return_obj = cust_db_obj.model_dump()
+                return_obj["reference_id"] = obj_new.reference_id
+                objs.append(return_obj)
 
             # IF CUSTOMER DEV IS MORE THAN 1, THEN CREATE CUSTOMER DEV PERSON GROUP
             if len(sch) > 1:
-                combined_names = " & ".join([f"{cust.first_name or ''} {cust.last_name or ''}".strip() for cust in new_customers])
+                combined_names = " & ".join([f"{cust["first_name"] or ''} {cust["last_name"] or ''}".strip() for cust in objs])
                 customer_dev_person_group = await self.create_customer_person_group(combined_names=combined_names, created_by=created_by)
 
                 # THEN MAPPING CUSTOMER DEV PERSON WITH CUSTOMER DEV PERSON GROUP
-                await self.create_customer_group(person_customer_ids=[cust.id for cust in new_customers], person_group_customer_id=customer_dev_person_group.id)
-                new_customers.append(customer_dev_person_group)
-                new_customer.append(customer_dev_person_group)
+                await self.create_customer_group(person_customer_ids=[cust["id"] for cust in objs], person_group_customer_id=customer_dev_person_group.id)
+                return_obj = cust_db_obj.model_dump()
+                return_obj["reference_id"] = None
+                objs.append(return_obj)
 
             await db.session.commit()
-
-            for obj_pubsub in new_customers:
-                PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_pubsub, action="create")
-                mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_pubsub.id)
-                for map_obj in mapping_cust_group:
-                    PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="create")
 
         except Exception as e:
             await db.session.rollback()
             raise HTTPException(status_code=409, detail=str(e))
         
-        return new_customer
+        return objs
     
     async def create_customer_person_group(self, *, combined_names:str, created_by:str) -> CustomerDev:
         required_fields = {
@@ -216,11 +219,6 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             await db.session.commit()
             await db.session.refresh(obj_current)
-
-            PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_current, action="update")
-            mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_current.id)
-            for map_obj in mapping_cust_group:
-                PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="update")
 
         except exc.IntegrityError as e:
             await db.session.rollback()
