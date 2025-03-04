@@ -146,7 +146,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         for person_customer_id in person_customer_ids:
             customer_dev_group = CustomerDevGroupCreateSch(customer_parent_id = person_group_customer_id, customer_reference_id = person_customer_id)
 
-            db_obj = CustomerDevGroup(customer_dev_group.model_dump())
+            db_obj = CustomerDevGroup(**customer_dev_group.model_dump())
 
             db.session.add(db_obj)
     

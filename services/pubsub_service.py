@@ -16,11 +16,13 @@ class PubSubService:
         try:
             # message.updated_at = None
             # message.created_at = None
-            delattr(message, "updated_at")
-            delattr(message, "created_at")
+            if topic_name != "master-customerdevgroup":
+                delattr(message, "updated_at")
+                delattr(message, "created_at")
             message_dict = message.dict()
             message_dict['action'] = action
-            message_dict['id'] = message.id
+            if topic_name != "master-customerdevgroup":
+                message_dict['id'] = message.id
             publisher = pubsub_v1.PublisherClient()
             topic_path = publisher.topic_path(
                 self.__projectId, topic_name + settings.PUBSUB_SUFFIX)
