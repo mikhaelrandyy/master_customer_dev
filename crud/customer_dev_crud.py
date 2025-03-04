@@ -89,7 +89,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 customer_dev_person_group = await self.create_customer_person_group(combined_names=combined_names, created_by=created_by)
 
                 # THEN MAPPING CUSTOMER DEV PERSON WITH CUSTOMER DEV PERSON GROUP
-                await self.create_customer_group(person_customer_ids=[cust.id for cust in new_customers], person_group_customer_id=customer_dev_person_group.id, created_by=created_by)
+                await self.create_customer_group(person_customer_ids=[cust.id for cust in new_customers], person_group_customer_id=customer_dev_person_group.id)
                 new_customers.append(customer_dev_person_group)
                 new_customer.append(customer_dev_person_group)
 
