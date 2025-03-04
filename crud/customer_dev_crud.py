@@ -99,7 +99,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_pubsub, action="create")
                 mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_pubsub.id)
                 for map_obj in mapping_cust_group:
-                    PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="update")
+                    PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="create")
 
         except Exception as e:
             await db.session.rollback()
@@ -216,7 +216,11 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             await db.session.commit()
             await db.session.refresh(obj_current)
-            # PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_current, action="update")
+            
+            PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_current, action="update")
+            mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_current.id)
+            for map_obj in mapping_cust_group:
+                PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="update")
 
         except exc.IntegrityError as e:
             await db.session.rollback()
