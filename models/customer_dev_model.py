@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 class CustomerDevBase(SQLModel):
     type: CustomerDevEnum | None = Field(nullable=True)
     code: str | None = Field(nullable=True, unique=True)
-    first_name: str | None = Field(nullable=True, max_length=40) 
-    last_name: str | None = Field(nullable=True, max_length=40) 
+    first_name: str | None = Field(nullable=True, max_length=80) 
+    last_name: str | None = Field(nullable=True, max_length=80) 
     known_as: str | None = Field(nullable=True, max_length=40) 
 
     business_id_type: JenisIdentitasEnum | None = Field(nullable=False) 

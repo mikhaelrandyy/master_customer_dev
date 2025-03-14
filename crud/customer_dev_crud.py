@@ -110,8 +110,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
     async def create_customer_person_group(self, *, combined_names:str, created_by:str) -> CustomerDev:
         required_fields = {
             "type": CustomerDevEnum.PERSON_GROUP,
-            "first_name": combined_names[:40] if len(combined_names) > 40 else combined_names,
-            "last_name": combined_names[40:] if len(combined_names) > 40 else "",    
+            "first_name": combined_names[:80] if len(combined_names) > 80 else combined_names,
+            "last_name": combined_names[80:] if len(combined_names) > 80 else "",    
             "business_id_type": JenisIdentitasEnum.KTP,
             "business_id": str(generate_number(digit=16)),
             "npwp": str(generate_number(digit=16)),
