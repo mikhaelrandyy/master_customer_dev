@@ -23,11 +23,10 @@ class CRUDCustomerDevGroup(CRUDBase[CustomerDevGroup, CustomerDevGroupCreateSch,
 
         return response.scalar_one_or_none()
     
-    async def get_multi_by_reference_id(self, *, id: str | None = None, db_session: AsyncSession | None = None) -> CustomerDevGroup | None:
+    async def get_multi_by_reference_id(self, *, id: str | None = None, db_session: AsyncSession | None = None):
         db_session = db_session or db.session
         
-        query = select(CustomerDevGroup)
-        query = query.where(CustomerDevGroup.customer_reference_id == id)
+        query = select(CustomerDevGroup).where(CustomerDevGroup.customer_reference_id == id)
         response = await db_session.execute(query)
 
         return response.scalars().all()

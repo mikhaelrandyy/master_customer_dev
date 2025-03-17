@@ -77,8 +77,8 @@ async def update(id: str, request: Request, update_data: ChangeDataSch):
         raise HTTPException(status_code=404, detail=f"Customer tidak ditemukan")
 
     obj_updated = await crud.customer_dev.update_customer_dev(obj_current=obj_current, obj_new=update_data, updated_by=login_user.client_id)
+    mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=id)
     PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_updated, action="update")
-    mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=obj_updated.id)
     for map_obj in mapping_cust_group:
         PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="update")
     
