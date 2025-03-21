@@ -182,7 +182,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                     setattr(obj_current, field, obj_after[field])
 
             obj_current.updated_by = updated_by
-            obj_current.updated_at = datetime.utcnow()
+            # obj_current.updated_at = datetime.utcnow()
 
             db.session.add(obj_current)
 
