@@ -71,7 +71,8 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                         elif created_by and created_by != '' and field == "updated_by":
                             setattr(cust_db_obj, field, created_by)
                 else:
-                    cust_db_obj = CustomerDev(**obj_new.model_dump(), created_by=created_by, updated_by=created_by)
+                    cust_db_obj = CustomerDev.model_validate(obj_new.model_dump())
+                    cust_db_obj.created_by = cust_db_obj.updated_by = created_by
 
                 db.session.add(cust_db_obj)
                 await db.session.flush()
