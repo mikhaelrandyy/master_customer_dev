@@ -11,44 +11,6 @@ from utils.exceptions.common_exception import IdNotFoundException
 
 router = APIRouter()
 
-@router.get("", response_model=GetResponsePaginatedSch[CustomerDevSch])
-async def get_list(params: Params=Depends()):
-
-    query = select(CustomerDev)
-
-    objs = await crud.customer_dev.get_multi_paginated_ordered(query=query, params=params)
-
-    return create_response(data=objs)
-
-@router.get("/no-page", response_model=GetResponseBaseSch[list[CustomerDevSch]])
-async def get_no_page():
-
-    query = select(CustomerDev)
-
-    objs = await crud.customer_dev.get_all_ordered(query=query, order_by="created_at")
-
-    return create_response(data=objs)
-
-@router.get("/{id}", response_model=GetResponseBaseSch[CustomerDevByIdSch])
-async def get_by_id(id: str):
-
-    obj = await  crud.customer_dev.get_by_id(id=id)
-
-    if obj is None:
-        raise IdNotFoundException(CustomerDev, id)
-    
-    return create_response(data=obj)
-
-@router.get("/business/{business_id}", response_model=GetResponseBaseSch[CustomerDevByIdSch])
-async def get_by_business_id(business_id: str):
-
-    obj = await crud.customer_dev.get_by_business_id(business_id=business_id)
-
-    if obj is None:
-        raise IdNotFoundException(CustomerDev, business_id)
-    
-    return create_response(data=obj)
-
 @router.post("", response_model=PostResponseBaseSch[list[CustomerDevSch]], status_code=status.HTTP_201_CREATED)
 async def create(request: Request, sch: list[CustomerDevCreateSch]):
     
@@ -83,3 +45,41 @@ async def update(id: str, request: Request, update_data: ChangeDataSch):
         PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="update")
     
     return create_response(data=obj_updated)
+
+@router.get("", response_model=GetResponsePaginatedSch[CustomerDevSch])
+async def get_list(params: Params=Depends()):
+
+    query = select(CustomerDev)
+
+    objs = await crud.customer_dev.get_multi_paginated_ordered(query=query, params=params)
+
+    return create_response(data=objs)
+
+@router.get("/no-page", response_model=GetResponseBaseSch[list[CustomerDevSch]])
+async def get_no_page():
+
+    query = select(CustomerDev)
+
+    objs = await crud.customer_dev.get_all_ordered(query=query, order_by="created_at")
+
+    return create_response(data=objs)
+
+@router.get("/{id}", response_model=GetResponseBaseSch[CustomerDevByIdSch])
+async def get_by_id(id: str):
+
+    obj = await crud.customer_dev.get_by_id(id=id)
+
+    if obj is None:
+        raise IdNotFoundException(CustomerDev, id)
+    
+    return create_response(data=obj)
+
+@router.get("/business/{business_id}", response_model=GetResponseBaseSch[CustomerDevByIdSch])
+async def get_by_business_id(business_id: str):
+
+    obj = await crud.customer_dev.get_by_business_id(business_id=business_id)
+
+    if obj is None:
+        raise IdNotFoundException(CustomerDev, business_id)
+    
+    return create_response(data=obj)
