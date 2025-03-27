@@ -1,8 +1,7 @@
 from ulid import ULID
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
-from models.base_model import BaseULIDModel, SQLModel
-from models import CustomerDev
+from models.base_model import SQLModel
 
 
 class CustomerDevGroupBase(SQLModel):

@@ -58,11 +58,10 @@ async def create(request: Request, sch: list[CustomerDevCreateSch]):
     objs = await crud.customer_dev.create(sch=sch, created_by=login_user.client_id)
     for obj in objs:
         customer = await crud.customer_dev.get(id=obj["id"])
+        mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=customer.id)
         PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=customer, action="create")
-        if len(sch) > 1:
-            mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=customer.id)
-            for map_obj in mapping_cust_group:
-                PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="create")
+        for map_obj in mapping_cust_group:
+            PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="create")
 
     return create_response(data=objs)
 
