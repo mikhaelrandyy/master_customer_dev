@@ -11,8 +11,9 @@ from models import (
     HistoryLog,
     Attachment)
 from schemas.customer_dev_sch import CustomerDevCreateSch, CustomerDevUpdateSch, CustomerDevByIdSch, CustomerDevSch, ChangeDataSch
+from schemas.attachment_sch import AttachmentUpdateSch, AttachmentCreateSch
 from schemas.customer_dev_group_sch import CustomerDevGroupCreateSch
-from schemas.history_log_sch import HistoryLogCreateUpdateSch
+from schemas.history_log_sch import HistoryLogCreateSch
 from common.generator import generate_number
 from common.enum import CustomerDevEnum, JenisIdentitasEnum
 from sqlalchemy.orm import selectinload, with_loader_criteria
@@ -22,86 +23,50 @@ from datetime import datetime, date
 import json
 
 class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpdateSch]):
-    async def get_by_id(self, *, id:str, is_active: bool | None = None) -> CustomerDev:
 
-        query = select(CustomerDev)
-        query = query.where(CustomerDev.id == id)
-        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) 
-                              if is_active is not None else selectinload(CustomerDev.attachments))
-
-        response = await db.session.execute(query)
-        return response.scalar_one_or_none()
-    
-    async def get_by_business_id(self, *, business_id:str) -> CustomerDev:
-
-        query = select(CustomerDev)
-        query = query.where(or_(CustomerDev.business_id == business_id, 
-                                CustomerDev.npwp == business_id,
-                                CustomerDev.nitku == business_id))
-        query = query.options(selectinload(CustomerDev.attachments))
-
-        response = await db.session.execute(query)
-        
-        return response.scalar_one_or_none()
-
-    async def get_by_ids(self, *, ids: list[str], is_active: bool | None = None) -> list[CustomerDevByIdSch]:
-        query = select(CustomerDev).where(CustomerDev.id.in_(ids)) 
-        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == is_active) 
-                              if is_active is not None else selectinload(CustomerDev.attachments))
-
-        response = await db.session.execute(query)
-    
-        return response.scalars().all()
-
-    async def create(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None):
+    async def create_bulk(self, *, sch: list[CustomerDevCreateSch], created_by : str | None = None):
         objs = []
         try:
             for obj_new in sch:
                 # self.check_validasi(obj_in=obj_in.model_dump())
-                cust_db_obj = await self.get_by_business_id(business_id=obj_new.business_id)
-                if cust_db_obj:
-                    obj_data = jsonable_encoder(cust_db_obj)
-                    if isinstance(obj_new, dict):
-                        update_data = obj_new
-                    else:
-                        update_data = obj_new.dict(exclude_unset=True)  # This tells Pydantic to not include the values that were not sent
-                    for field in obj_data:
-                        if field in update_data:
-                            setattr(cust_db_obj, field, update_data[field])
-                        elif created_by and created_by != '' and field == "updated_by":
-                            setattr(cust_db_obj, field, created_by)
+                customerdev = await self.get_by_business_id(business_id=obj_new.business_id)
+                if customerdev:
+                    customerdev_updated = CustomerDevUpdateSch(**customerdev.model_dump())
+                    customerdev = await self.update(obj_current=customerdev, obj_new=customerdev_updated, updated_by=created_by, with_commit=False)
                 else:
-                    cust_db_obj = CustomerDev.model_validate(obj_new.model_dump())
-                    cust_db_obj.created_by = cust_db_obj.updated_by = created_by
-
-                db.session.add(cust_db_obj)
-                await db.session.flush()
-
-                for obj_new_attach in obj_new.attachments:
-                    existing_attachment = await crud.attachment.get_by_doc_type(customer_id=cust_db_obj.id, doc_type=obj_new_attach.doc_type)
-
-                    if existing_attachment:
-                        existing_attachment.is_active = False
-                        existing_attachment.updated_by = created_by
-                        db.session.add(existing_attachment)
-
-                    attach_db_obj = Attachment(**obj_new_attach.model_dump(), created_by=created_by, updated_by=created_by, is_active=True)
-                    db.session.add(attach_db_obj)
+                    customerdev_created = CustomerDevCreateSch(**obj_new.model_dump())
+                    customerdev = await self.create(obj_in=customerdev_created, created_by=created_by, with_commit=False)
                 
-                return_obj = cust_db_obj.model_dump()
-                return_obj["reference_id"] = obj_new.reference_id
-                objs.append(return_obj)
+                for obj_new_attach in obj_new.attachments:
+                    current_attachment = await crud.attachment.get_actived_attachment(
+                        customer_id=customerdev.id, 
+                        doc_type=obj_new_attach.doc_type
+                    )
+
+                    if current_attachment:
+                        attachment_updated = AttachmentUpdateSch(**current_attachment.model_dump())
+                        attachment_updated.is_active = False
+                        await crud.attachment.update(obj_current=current_attachment, obj_new=attachment_updated, updated_by=created_by, with_commit=False)
+
+                    attachment_created = AttachmentCreateSch(**obj_new_attach.model_dump())
+                    attachment_created.customer_id = customerdev.id
+                    attachment_created.is_active = True
+                    await crud.attachment.create(obj_in=attachment_created, created_by=created_by, with_commit=False)
+                
+                customerdev_return = customerdev.model_dump()
+                customerdev_return["reference_id"] = obj_new.reference_id
+                objs.append(customerdev_return)
 
             # IF CUSTOMER DEV IS MORE THAN 1, THEN CREATE CUSTOMER DEV PERSON GROUP
             if len(sch) > 1:
-                combined_names = " & ".join([f"{cust["first_name"] or ''} {cust["last_name"] or ''}".strip() for cust in objs])
-                customer_dev_person_group = await self.create_customer_person_group(combined_names=combined_names, created_by=created_by)
+                # CREATE CUSTOMER DEV PERSON GROUP
+                customerdev_person_group = await self.create_customer_person_group(objs=objs, created_by=created_by)
 
-                # THEN MAPPING CUSTOMER DEV PERSON WITH CUSTOMER DEV PERSON GROUP
-                await self.create_customer_group(person_customer_ids=[cust["id"] for cust in objs], person_group_customer_id=customer_dev_person_group.id)
-                return_obj = cust_db_obj.model_dump()
-                return_obj["reference_id"] = None
-                objs.append(return_obj)
+                # MAPPING CUSTOMER DEV PERSON WITH CUSTOMER DEV PERSON GROUP
+                await self.create_customer_group(person_customer_ids=[cust["id"] for cust in objs], person_group_customer_id=customerdev_person_group.id)
+                customerdev_person_group_return = customerdev_person_group.model_dump()
+                customerdev_person_group_return["reference_id"] = None
+                objs.append(customerdev_person_group_return)
 
             await db.session.commit()
 
@@ -111,40 +76,33 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
         
         return objs
     
-    async def create_customer_person_group(self, *, combined_names:str, created_by:str) -> CustomerDev:
-        required_fields = {
-            "type": CustomerDevEnum.PERSON_GROUP,
-            "first_name": combined_names[:80] if len(combined_names) > 80 else combined_names,
-            "last_name": combined_names[80:] if len(combined_names) > 80 else "",    
-            "business_id_type": JenisIdentitasEnum.KTP,
-            "business_id": str(generate_number(digit=16)),
-            "npwp": str(generate_number(digit=16)),
-            "nitku": str(generate_number(digit=22)),
-            "code": None,
-            "gender": None,
-            "religion": None,
-            "marital_status": None,
-            "mailing_address_type": None,
-            "business_id_creation_date": None,
-            "business_id_valid_until": None,
-            "date_of_birth": None,
-            "email": None,
-            "attachments": []
-        }
-        customer_dev_person_group = CustomerDevCreateSch.model_construct(**required_fields)
+    async def create_customer_person_group(self, *, objs, created_by:str) -> CustomerDev:
+        combined_names = " & ".join([f"{cust["first_name"] or ''} {cust["last_name"] or ''}".strip() for cust in objs])
+        required_fields = ["type", "first_name", "last_name",    
+            "business_id_type", "business_id", "npwp",
+            "nitku", "code", "gender",
+            "religion", "marital_status", "mailing_address_type",
+            "business_id_creation_date", "business_id_valid_until", "date_of_birth",
+            "email", "attachments"
+        ]
+
+        customerdev_person_group_created = CustomerDevCreateSch(
+            type=CustomerDevEnum.PERSON_GROUP,
+            first_name=combined_names[:80] if len(combined_names) > 80 else combined_names,
+            last_name=combined_names[80:] if len(combined_names) > 80 else "",
+            business_id_type=JenisIdentitasEnum.KTP,
+            business_id=str(generate_number(digit=16)),
+            npwp=str(generate_number(digit=16)),
+            nitku=str(generate_number(digit=22))
+        )
         
-        for field in customer_dev_person_group.__fields__:
+        for field in customerdev_person_group_created.__fields__:
             if field not in required_fields:
-                setattr(customer_dev_person_group, field, "-")
+                setattr(customerdev_person_group_created, field, "-")
 
 
-        db_obj = CustomerDev(**customer_dev_person_group.model_dump())
-
-        if created_by:
-            db_obj.created_by = db_obj.updated_by = created_by
-        db.session.add(db_obj)
-        await db.session.flush()
-        return db_obj
+        customerdev_person_group = await crud.customer_dev.create(obj_in=customerdev_person_group_created, created_by=created_by, with_commit=False)
+        return customerdev_person_group
     
     async def create_customer_group(self, *, person_customer_ids:list[str], person_group_customer_id:str):
         for person_customer_id in person_customer_ids:
@@ -154,69 +112,51 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
 
             db.session.add(db_obj)
     
-    async def update_customer_dev(self, *, obj_current: CustomerDev, obj_new: ChangeDataSch, updated_by: str) -> CustomerDev:
+    async def update_change_data(self, *, obj_current: CustomerDev, obj_new: ChangeDataSch, updated_by: str) -> CustomerDev:
         try:
-            obj_after = obj_new.after
-            obj_before = obj_new.before
-            source_process = obj_new.lastest_source_from
-            vs_reference = obj_new.vs_reference
-
             if obj_new.lastest_source_from is None:
                 raise HTTPException(status_code=400, detail="source_process is required.")
             
-            if vs_reference is None:
+            if obj_new.vs_reference is None:
                 raise HTTPException(status_code=400, detail="vs_reference is required.")
 
-            if obj_before is None or obj_after is None:
+            if obj_new.before is None or obj_new.after is None:
                 raise HTTPException(status_code=400, detail="Data 'before' dan 'after' wajib dikirim untuk melakukan perubahan.")
             
             # self.check_validasi(obj_in=obj_after)
 
-            date_fields = ['business_id_creation_date', 'business_id_valid_until', 'date_of_birth']
+            customerdev = await self.update(obj_current=obj_current, obj_new=obj_new.after, updated_by=updated_by, with_commit=False)
 
-            for field in date_fields:
-                if field in obj_after:
-                    obj_after[field] = datetime.strptime(obj_after[field], '%Y-%m-%d').date()
+            if 'attachments' in obj_new.after:
+                for obj_new_attach in obj_new.after.get('attachments'):
+                    current_attachment = await crud.attachment.get_actived_attachment(
+                        customer_id=obj_current.id, 
+                        doc_type=obj_new_attach.get('doc_type')
+                    )
 
-            for field in obj_after.keys():
-                if field != 'attachments' and hasattr(obj_current, field):
-                    setattr(obj_current, field, obj_after[field])
+                    if current_attachment:
+                        attachment_updated = AttachmentUpdateSch(**current_attachment.model_dump())
+                        attachment_updated.is_active = False
+                        await crud.attachment.update(obj_current=current_attachment, obj_new=attachment_updated, updated_by=updated_by, with_commit=False)
 
-            obj_current.updated_by = updated_by
-            # obj_current.updated_at = datetime.utcnow()
-
-            db.session.add(obj_current)
-
-            if 'attachments' in obj_after:
-                for attachment in obj_after.get('attachments'):
-                    existing_attachment = await crud.attachment.get_by_doc_type(customer_id=obj_current.id, doc_type=attachment.get('doc_type'))
-
-                    if existing_attachment:
-                        existing_attachment.is_active = False
-                        existing_attachment.updated_by = updated_by
-                        db.session.add(existing_attachment)
-
-                    # Create new attachment
-                    new_attachment = Attachment(**attachment)
-                    new_attachment.customer_id = obj_current.id
-                    new_attachment.is_active = True
-                    new_attachment.updated_by = updated_by
-                    new_attachment.created_by = updated_by
-                    db.session.add(new_attachment)
+                    attachment_created = AttachmentCreateSch(**obj_new_attach.model_dump())
+                    attachment_created.customer_id = customerdev.id
+                    attachment_created.is_active = True
+                    await crud.attachment.create(obj_in=attachment_created, created_by=updated_by, with_commit=False)
+                
 
             # Log perubahan
-            history_log_entry = HistoryLogCreateUpdateSch(
+            history_log_created = HistoryLogCreateSch(
                 reference_id=obj_current.id,
-                before=jsonable_encoder(obj_before),
-                after=jsonable_encoder(obj_after),
-                source_process=source_process,
-                vs_reference=vs_reference,
+                before=jsonable_encoder(obj_new.before),
+                after=jsonable_encoder(obj_new.after),
+                source_process=obj_new.lastest_source_from,
+                vs_reference=obj_new.vs_reference,
                 source_table="customer_dev",
                 created_by=updated_by,
                 updated_by=updated_by
             )
-            hislog_db = HistoryLog.model_validate(history_log_entry.model_dump())
-            db.session.add(hislog_db)
+            await crud.history_log.create(obj_in=history_log_created, created_by=updated_by, with_commit=False)
 
             await db.session.commit()
             await db.session.refresh(obj_current)
@@ -229,6 +169,36 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
             raise HTTPException(status_code=409, detail=str(e))
 
         return obj_current
+    
+    async def get_by_id(self, *, id:str) -> CustomerDev | None:
+
+        query = select(CustomerDev)
+        query = query.where(CustomerDev.id == id)
+        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == True))
+
+        response = await db.session.execute(query)
+        return response.scalar_one_or_none()
+    
+    async def get_by_ids(self, *, ids: list[str]) -> list[CustomerDevByIdSch]:
+        
+        query = select(CustomerDev).where(CustomerDev.id.in_(ids)) 
+        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == True))
+
+        response = await db.session.execute(query)
+        return response.scalars().all()
+
+    async def get_by_business_id(self, *, business_id:str) -> CustomerDev | None:
+        query = select(CustomerDev)
+        query = query.where(
+            or_(CustomerDev.business_id == business_id, 
+                CustomerDev.npwp == business_id,
+                CustomerDev.nitku == business_id
+            )
+        )
+        query = query.options(selectinload(CustomerDev.attachments), with_loader_criteria(Attachment, Attachment.is_active == True))
+
+        response = await db.session.execute(query)
+        return response.scalar_one_or_none()
     
     # def check_validasi(self, *, obj_in: dict):
 

@@ -17,7 +17,7 @@ class CRUDAttachment(CRUDBase[Attachment, AttachmentCreateSch, AttachmentUpdateS
 
         return response.scalar_one_or_none()
     
-    async def get_by_doc_type(self, *, customer_id: str | None = None, doc_type: str | None = None) -> Attachment:
+    async def get_actived_attachment(self, *, customer_id: str | None = None, doc_type: str | None = None) -> Attachment:
         query = select(Attachment)
         query = query.where(and_(
                             Attachment.customer_id == customer_id,

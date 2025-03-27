@@ -9,12 +9,12 @@ if TYPE_CHECKING:
 
 
 class AttachmentBase(SQLModel):
-    customer_id: str | None = Field(nullable=True, foreign_key="customer_dev.id")
+    customer_id: str | None = Field(nullable=True, default=None, foreign_key="customer_dev.id")
     doc_type: str | None = Field(nullable=True)
     file_name: str | None = Field(nullable=True)
     file_url: str | None = Field(nullable=True)
     source_process: str = Field(nullable=False) #UPDATE APLIKASI FROM
-    is_active: bool | None = Field(nullable=True)
+    is_active: bool | None = Field(nullable=True, default=True)
 
 class AttachmentFullBase(AttachmentBase, BaseULIDModel):
     pass

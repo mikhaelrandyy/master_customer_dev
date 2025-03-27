@@ -30,9 +30,9 @@ async def get_no_page():
     return create_response(data=objs)
 
 @router.get("/{id}", response_model=GetResponseBaseSch[CustomerDevByIdSch])
-async def get_by_id(id: str, is_active: bool | None = None):
+async def get_by_id(id: str):
 
-    obj = await  crud.customer_dev.get_by_id(id=id, is_active=is_active)
+    obj = await  crud.customer_dev.get_by_id(id=id)
 
     if obj is None:
         raise IdNotFoundException(CustomerDev, id)
@@ -55,7 +55,7 @@ async def create(request: Request, sch: list[CustomerDevCreateSch]):
     """Create a new object"""
     if hasattr(request.state, 'login_user'):
         login_user=request.state.login_user
-    objs = await crud.customer_dev.create(sch=sch, created_by=login_user.client_id)
+    objs = await crud.customer_dev.create_bulk(sch=sch, created_by=login_user.client_id)
     for obj in objs:
         customer = await crud.customer_dev.get(id=obj["id"])
         mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=customer.id)
@@ -76,7 +76,7 @@ async def update(id: str, request: Request, update_data: ChangeDataSch):
     if not obj_current:
         raise HTTPException(status_code=404, detail=f"Customer tidak ditemukan")
 
-    obj_updated = await crud.customer_dev.update_customer_dev(obj_current=obj_current, obj_new=update_data, updated_by=login_user.client_id)
+    obj_updated = await crud.customer_dev.update_change_data(obj_current=obj_current, obj_new=update_data, updated_by=login_user.client_id)
     mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=id)
     PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_updated, action="update")
     for map_obj in mapping_cust_group:
