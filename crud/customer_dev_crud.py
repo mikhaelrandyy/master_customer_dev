@@ -31,10 +31,10 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                 # self.check_validasi(obj_in=obj_in.model_dump())
                 customerdev = await self.get_by_business_id(business_id=obj_new.business_id)
                 if customerdev:
-                    customerdev_updated = CustomerDevUpdateSch(**customerdev.model_dump())
+                    customerdev_updated = CustomerDev.model_validate(customerdev.model_dump())
                     customerdev = await self.update(obj_current=customerdev, obj_new=customerdev_updated, updated_by=created_by, with_commit=False)
                 else:
-                    customerdev_created = CustomerDevCreateSch(**obj_new.model_dump())
+                    customerdev_created = CustomerDev.model_validate(obj_new.model_dump())
                     customerdev = await self.create(obj_in=customerdev_created, created_by=created_by, with_commit=False)
                 
                 for obj_new_attach in obj_new.attachments:
@@ -44,11 +44,11 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                     )
 
                     if current_attachment:
-                        attachment_updated = AttachmentUpdateSch(**current_attachment.model_dump())
+                        attachment_updated = Attachment.model_validate(current_attachment.model_dump())
                         attachment_updated.is_active = False
                         await crud.attachment.update(obj_current=current_attachment, obj_new=attachment_updated, updated_by=created_by, with_commit=False)
 
-                    attachment_created = AttachmentCreateSch(**obj_new_attach.model_dump())
+                    attachment_created = Attachment.model_validate(obj_new_attach.model_dump())
                     attachment_created.customer_id = customerdev.id
                     attachment_created.is_active = True
                     await crud.attachment.create(obj_in=attachment_created, created_by=created_by, with_commit=False)
@@ -106,10 +106,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
     
     async def create_customer_group(self, *, person_customer_ids:list[str], person_group_customer_id:str):
         for person_customer_id in person_customer_ids:
-            customer_dev_group = CustomerDevGroupCreateSch(customer_parent_id = person_group_customer_id, customer_reference_id = person_customer_id)
-
-            db_obj = CustomerDevGroup(**customer_dev_group.model_dump())
-
+            db_obj = CustomerDevGroup(customer_parent_id = person_group_customer_id, customer_reference_id = person_customer_id)
             db.session.add(db_obj)
     
     async def update_change_data(self, *, obj_current: CustomerDev, obj_new: ChangeDataSch, updated_by: str) -> CustomerDev:
