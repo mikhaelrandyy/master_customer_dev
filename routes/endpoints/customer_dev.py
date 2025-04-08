@@ -19,9 +19,10 @@ async def create(request: Request, sch: list[CustomerDevCreateSch]):
         login_user=request.state.login_user
     objs = await crud.customer_dev.create_bulk(sch=sch, created_by=login_user.client_id)
     for obj in objs:
-        customer = await crud.customer_dev.get(id=obj["id"])
-        mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=customer.id)
-        PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=customer, action="create")
+        customerdev_current = await crud.customer_dev.get_by_id(id=obj["id"])
+        customerdev_current = CustomerDevByIdSch.model_validate(customerdev_current)
+        mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=customerdev_current.id)
+        PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=customerdev_current, action="create")
         for map_obj in mapping_cust_group:
             PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="create")
 
@@ -39,8 +40,10 @@ async def update(id: str, request: Request, update_data: ChangeDataSch):
         raise HTTPException(status_code=404, detail=f"Customer tidak ditemukan")
 
     obj_updated = await crud.customer_dev.update_change_data(obj_current=obj_current, obj_new=update_data, updated_by=login_user.client_id)
+    customerdev_current = await crud.customer_dev.get_by_id(id=obj_updated.id)
+    customerdev_current = CustomerDevByIdSch.model_validate(customerdev_current)
     mapping_cust_group = await crud.customer_dev_group.get_multi_by_reference_id(id=id)
-    PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=obj_updated, action="update")
+    PubSubService().publish_to_pubsub(topic_name="master-customerdev", message=customerdev_current, action="update")
     for map_obj in mapping_cust_group:
         PubSubService().publish_to_pubsub(topic_name="master-customerdevgroup", message=map_obj, action="update")
     

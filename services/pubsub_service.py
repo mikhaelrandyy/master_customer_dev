@@ -1,4 +1,5 @@
 # Publish to Pub/Sub
+from fastapi.encoders import jsonable_encoder
 from google.cloud import pubsub_v1
 import json
 from configs.config import settings
@@ -19,7 +20,7 @@ class PubSubService:
             if topic_name != "master-customerdevgroup":
                 delattr(message, "updated_at")
                 delattr(message, "created_at")
-            message_dict = message.dict()
+            message_dict = jsonable_encoder(message)
             message_dict['action'] = action
             if topic_name != "master-customerdevgroup":
                 message_dict['id'] = message.id
