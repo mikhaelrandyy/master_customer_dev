@@ -136,7 +136,7 @@ class CRUDCustomerDev(CRUDBase[CustomerDev, CustomerDevCreateSch, CustomerDevUpd
                         attachment_updated.is_active = False
                         await crud.attachment.update(obj_current=current_attachment, obj_new=attachment_updated, updated_by=updated_by, with_commit=False)
 
-                    attachment_created = AttachmentCreateSch(**obj_new_attach.model_dump())
+                    attachment_created = AttachmentCreateSch(**obj_new_attach)
                     attachment_created.customer_id = customerdev.id
                     attachment_created.is_active = True
                     await crud.attachment.create(obj_in=attachment_created, created_by=updated_by, with_commit=False)
