@@ -50,9 +50,18 @@ async def update(id: str, request: Request, update_data: ChangeDataSch):
     return create_response(data=obj_updated)
 
 @router.get("", response_model=GetResponsePaginatedSch[CustomerDevSch])
-async def get_list(params: Params=Depends()):
+async def get_list(search: str | None = None, params: Params=Depends()):
 
     query = select(CustomerDev)
+
+    if search:
+        query = query.filter(
+                  or_(
+                     CustomerDev.code.ilike(f'%{search}%'),
+                     CustomerDev.first_name.ilike(f'%{search}%'),
+                     CustomerDev.last_name.ilike(f'%{search}%')
+                  )
+               )
 
     objs = await crud.customer_dev.get_multi_paginated_ordered(query=query, params=params)
 
