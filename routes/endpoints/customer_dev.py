@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, HTTPException, Request, Depends
-from sqlmodel import select, or_
+from sqlmodel import select, or_, func
 from sqlalchemy.orm import selectinload
 from fastapi_pagination import Params
 from schemas.customer_dev_sch import (CustomerDevSch, CustomerDevCreateSch, CustomerDevByIdSch, ChangeDataSch)
@@ -56,12 +56,13 @@ async def get_list(search: str | None = None, params: Params=Depends()):
 
     if search:
         query = query.filter(
-                  or_(
-                     CustomerDev.code.ilike(f'%{search}%'),
-                     CustomerDev.first_name.ilike(f'%{search}%'),
-                     CustomerDev.last_name.ilike(f'%{search}%')
-                  )
-               )
+            or_(
+                CustomerDev.code.ilike(f'%{search}%'),
+                CustomerDev.first_name.ilike(f'%{search}%'),
+                CustomerDev.last_name.ilike(f'%{search}%'),
+                func.concat(CustomerDev.first_name, ' ', CustomerDev.last_name).ilike(f'%{search}%')
+            )
+        )
 
     objs = await crud.customer_dev.get_multi_paginated_ordered(query=query, params=params)
 
